@@ -83,12 +83,15 @@ export function GameScreen({ room, players, currentPlayer, isHost, onStartVoting
             {players.map((player) => (
               <span
                 key={player.id}
-                className={`px-3 py-1 rounded-full text-sm ${player.client_id === clientId
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-background'
+                className={`px-3 py-1 rounded-full text-sm ${player.is_eliminated
+                    ? 'bg-red-500/20 text-red-400 line-through opacity-60'
+                    : player.client_id === clientId
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-background'
                   }`}
               >
                 {player.name}
+                {player.is_eliminated && ' ❌'}
               </span>
             ))}
           </div>

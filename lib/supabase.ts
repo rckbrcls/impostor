@@ -30,6 +30,7 @@ export interface Player {
   client_id: string;
   name: string;
   is_impostor: boolean;
+  is_eliminated: boolean;
   score: number;
   joined_at: string;
 }

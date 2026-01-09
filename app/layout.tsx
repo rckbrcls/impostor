@@ -27,9 +27,22 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable}>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
       >
-        {children}
+        <main className="flex-1">
+          {children}
+        </main>
+        <footer className="py-4 text-center text-sm text-muted-foreground">
+          made by{' '}
+          <a
+            href="https://www.erickbarcelos.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-foreground transition-colors"
+          >
+            erick barcelos
+          </a>
+        </footer>
       </body>
     </html>
   );

@@ -39,10 +39,10 @@ export function Lobby({ room, players, onGameStart }: LobbyProps) {
       const impostorIndex = Math.floor(Math.random() * players.length)
       const impostorId = players[impostorIndex].id
 
-      // Resetar todos para não-impostor
+      // Resetar todos para não-impostor e não eliminado
       await supabase
         .from('players')
-        .update({ is_impostor: false })
+        .update({ is_impostor: false, is_eliminated: false })
         .eq('room_id', room.id)
 
       // Marcar o impostor

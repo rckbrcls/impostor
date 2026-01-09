@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { supabase, type Player, type Room } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Trophy, Medal, Home, RotateCcw } from 'lucide-react'
+import { Trophy, Home, RotateCcw, Skull, Users } from 'lucide-react'
 
 interface ResultsScreenProps {
   room: Room
@@ -14,21 +14,20 @@ interface ResultsScreenProps {
 export function ResultsScreen({ room, players }: ResultsScreenProps) {
   const router = useRouter()
 
-  // Ordenar por pontuação
-  const sortedPlayers = [...players].sort((a, b) => b.score - a.score)
+  // Encontrar o impostor
+  const impostor = players.find((p) => p.is_impostor)
 
-  const getMedal = (index: number) => {
-    switch (index) {
-      case 0:
-        return '🥇'
-      case 1:
-        return '🥈'
-      case 2:
-        return '🥉'
-      default:
-        return `${index + 1}º`
-    }
-  }
+  // Jogadores ativos (não eliminados)
+  const activePlayers = players.filter((p) => !p.is_eliminated)
+
+  // Jogadores eliminados
+  const eliminatedPlayers = players.filter((p) => p.is_eliminated)
+
+  // O impostor venceu se ele ainda está ativo e restam apenas 2 jogadores ativos
+  const impostorWon = impostor && !impostor.is_eliminated && activePlayers.length <= 2
+
+  // O impostor perdeu se foi eliminado
+  const impostorLost = impostor?.is_eliminated ?? false
 
   const goHome = () => {
     router.push('/')
@@ -36,16 +35,22 @@ export function ResultsScreen({ room, players }: ResultsScreenProps) {
 
   const playAgain = async () => {
     try {
-      // Resetar pontuações
+      // Limpar votos antigos
       await supabase
-        .from('players')
-        .update({ score: 0, is_impostor: false })
+        .from('votes')
+        .delete()
         .eq('room_id', room.id)
 
-      // Voltar sala para waiting
+      // Resetar jogadores
+      await supabase
+        .from('players')
+        .update({ score: 0, is_impostor: false, is_eliminated: false })
+        .eq('room_id', room.id)
+
+      // Voltar sala para playing (nova partida)
       await supabase
         .from('rooms')
-        .update({ status: 'waiting', round: 0, word: null })
+        .update({ status: 'playing', round: 1, word: null })
         .eq('id', room.id)
     } catch (error) {
       console.error('Erro ao reiniciar jogo:', error)
@@ -56,37 +61,66 @@ export function ResultsScreen({ room, players }: ResultsScreenProps) {
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="text-center">
         <CardTitle className="text-2xl flex items-center justify-center gap-2">
-          <Trophy className="text-yellow-500" />
-          Ranking Final
+          {impostorWon ? (
+            <>
+              <Skull className="text-red-500" />
+              O Impostor Venceu!
+            </>
+          ) : (
+            <>
+              <Trophy className="text-yellow-500" />
+              Jogadores Venceram!
+            </>
+          )}
         </CardTitle>
         <CardDescription>
-          {room.round} rodadas jogadas
+          {room.round} rodada{room.round !== 1 ? 's' : ''} jogada{room.round !== 1 ? 's' : ''}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Ranking */}
-        <div className="space-y-2">
-          {sortedPlayers.map((player, index) => (
-            <div
-              key={player.id}
-              className={`flex items-center justify-between p-3 rounded-lg ${index === 0
-                  ? 'bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border border-yellow-500/30'
-                  : 'bg-muted'
-                }`}
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">{getMedal(index)}</span>
-                <span className={`font-medium ${index === 0 ? 'text-lg' : ''}`}>
+        {/* Revelação da palavra */}
+        <div className="bg-gradient-to-br from-primary/10 to-primary/20 rounded-xl p-6 text-center border-2 border-primary/30">
+          <p className="text-sm text-muted-foreground mb-2">A palavra era:</p>
+          <p className="text-3xl font-bold text-primary uppercase">
+            {room.word}
+          </p>
+        </div>
+
+        {/* Quem era o impostor */}
+        <div className={`rounded-xl p-4 text-center border-2 ${impostorWon
+          ? 'bg-gradient-to-br from-red-500/20 to-rose-600/30 border-red-500/50'
+          : 'bg-gradient-to-br from-green-500/20 to-emerald-600/30 border-green-500/50'
+          }`}>
+          <p className="text-sm text-muted-foreground mb-1">O impostor era:</p>
+          <p className="text-2xl font-bold">
+            🕵️ {impostor?.name ?? 'Desconhecido'}
+          </p>
+          {impostorWon && (
+            <p className="text-sm text-red-400 mt-2">
+              Sobreviveu por {room.round} rodada{room.round !== 1 ? 's' : ''}!
+            </p>
+          )}
+        </div>
+
+        {/* Jogadores eliminados */}
+        {eliminatedPlayers.length > 0 && (
+          <div className="bg-muted/50 rounded-lg p-4">
+            <p className="text-sm text-muted-foreground mb-2 flex items-center gap-2">
+              <Users className="size-4" />
+              Eliminados durante o jogo:
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {eliminatedPlayers.map((player) => (
+                <span
+                  key={player.id}
+                  className="px-3 py-1 rounded-full text-sm bg-red-500/20 text-red-400 border border-red-500/30"
+                >
                   {player.name}
                 </span>
-              </div>
-              <div className="flex items-center gap-1 font-bold">
-                <Medal className="size-4" />
-                {player.score} pts
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+        )}
 
         {/* Ações */}
         <div className="flex gap-2 pt-4">
