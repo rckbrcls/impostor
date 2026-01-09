@@ -6,7 +6,7 @@ export function Footer() {
   const { t } = useLanguage();
 
   return (
-    <footer className="py-6 text-center text-sm border-t-2 border-black dark:border-white bg-white dark:bg-zinc-900">
+    <footer className="py-4 text-center text-sm border-t-2 border-black dark:border-white bg-white dark:bg-zinc-900">
       {t('footer.made_by')}{' '}
       <a
         href="https://www.erickbarcelos.com"
