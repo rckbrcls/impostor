@@ -13,7 +13,7 @@ export default function Home() {
   const { t } = useLanguage()
 
   return (
-    <main className="min-h-full p-4 flex items-center justify-center bg-gradient-to-br from-background via-background to-muted">
+    <main className="min-h-full p-4 flex items-center justify-center ">
       <div className="w-full max-w-md space-y-8">
         {/* Header */}
         <div className="text-center space-y-2">

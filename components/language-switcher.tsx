@@ -9,8 +9,7 @@ export function LanguageSwitcher() {
 
   return (
     <Button
-      variant="ghost"
-      size="sm"
+      variant="outline"
       onClick={() => setLanguage(language === 'pt' ? 'en' : 'pt')}
       className="gap-2"
     >
