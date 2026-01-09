@@ -402,6 +402,7 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
                       checked={isPlayerSelected(player.id)}
                       onChange={() => !hasVoted && setMyChoice({ type: 'player', playerId: player.id })}
                       disabled={hasVoted}
+                      className="has-[:checked]:bg-primary/20 has-[:checked]:border-primary/50 dark:has-[:checked]:bg-primary/40"
                       title={
                         <span className="flex items-center gap-2">
                           <User className="size-4" />
@@ -434,12 +435,12 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
               </div>
 
               {/* Seção: Ações alternativas */}
-              {/* Seção: Ações alternativas */}
               <SelectionGroup>
                 <SelectionItem
                   checked={myChoice?.type === 'next_round'}
                   onChange={() => !hasVoted && setMyChoice({ type: 'next_round' })}
                   disabled={hasVoted}
+                  className="has-[:checked]:bg-green-500/20 has-[:checked]:border-green-500/50 dark:has-[:checked]:bg-green-900/40 [&_input]:checked:bg-green-600 [&_input]:checked:border-green-600 [&_input]:checked:shadow-green-900 [&_input]:focus:ring-green-500"
                   title={
                     <span className="flex items-center gap-2">
                       <Play className="size-4" />
@@ -458,6 +459,7 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
                   checked={myChoice?.type === 'end_game'}
                   onChange={() => !hasVoted && setMyChoice({ type: 'end_game' })}
                   disabled={hasVoted}
+                  className="has-[:checked]:bg-red-500/20 has-[:checked]:border-red-500/50 dark:has-[:checked]:bg-red-900/40 [&_input]:checked:bg-red-600 [&_input]:checked:border-red-600 [&_input]:checked:shadow-red-900 [&_input]:focus:ring-red-500"
                   title={
                     <span className="flex items-center gap-2">
                       <Flag className="size-4" />

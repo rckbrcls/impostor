@@ -1,5 +1,6 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
+import { Check } from "lucide-react"
 
 function SelectionGroup({
   className,
@@ -47,14 +48,17 @@ function SelectionItem({
       )}
       {...props}
     >
-      <input
-        type="checkbox"
-        className="size-6 shrink-0 appearance-none border-2 border-black shadow-[2px_2px_0_0] shadow-black checked:bg-black focus:ring-2 focus:ring-black dark:border-white dark:shadow-white dark:checked:bg-white dark:focus:ring-white"
-        checked={checked}
-        disabled={disabled}
-        onChange={(e) => onChange?.(e.target.checked)}
-        value={value}
-      />
+      <div className="relative flex items-center">
+        <input
+          type="checkbox"
+          className="peer size-6 shrink-0 appearance-none border-2 border-black shadow-[2px_2px_0_0] shadow-black checked:bg-black focus:ring-2 focus:ring-black dark:border-white dark:shadow-white dark:checked:bg-white dark:focus:ring-white"
+          checked={checked}
+          disabled={disabled}
+          onChange={(e) => onChange?.(e.target.checked)}
+          value={value}
+        />
+        <Check className="pointer-events-none absolute left-1/2 top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100 dark:text-black" />
+      </div>
 
       <div className="grid gap-0.5">
         <strong className="font-semibold">{title}</strong>
