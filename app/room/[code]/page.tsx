@@ -191,6 +191,7 @@ export default function RoomPage() {
           room={room}
           players={players}
           currentPlayer={currentPlayer}
+          isHost={isHost}
           onNextRound={() => setPhase('playing')}
           onEndGame={() => setPhase('ended')}
         />

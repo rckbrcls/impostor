@@ -11,21 +11,29 @@ interface VotingScreenProps {
   room: Room
   players: Player[]
   currentPlayer: Player | null
+  isHost: boolean
   onNextRound: () => void
   onEndGame: () => void
 }
 
-export function VotingScreen({ room, players, currentPlayer, onNextRound, onEndGame }: VotingScreenProps) {
+// Tipo de voto: pode ser um jogador ou uma ação
+type VoteChoice = { type: 'player'; playerId: string } | { type: 'next_round' } | { type: 'end_game' }
+
+export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound, onEndGame }: VotingScreenProps) {
   const [votes, setVotes] = useState<Vote[]>([])
-  const [myImpostorVote, setMyImpostorVote] = useState<string | null>(null)
-  const [myActionVote, setMyActionVote] = useState<'next_round' | 'end_game' | null>(null)
+  const [myChoice, setMyChoice] = useState<VoteChoice | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [hasVoted, setHasVoted] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [revealResult, setRevealResult] = useState(false)
+  const [mostVotedPlayer, setMostVotedPlayer] = useState<{ player: Player | null; wasImpostor: boolean } | null>(null)
 
   const impostor = players.find((p) => p.is_impostor)
   const totalPlayers = players.length
+  const isCurrentPlayerImpostor = currentPlayer?.is_impostor ?? false
+
+  // Jogadores que podem receber votos (todos podem votar em qualquer um - debug mode)
+  const votablePlayers = players
 
   // Carregar votos existentes
   useEffect(() => {
@@ -41,8 +49,14 @@ export function VotingScreen({ room, players, currentPlayer, onNextRound, onEndG
         // Verificar se já votei
         const myVote = data.find((v) => v.voter_id === currentPlayer?.id)
         if (myVote) {
-          setMyImpostorVote(myVote.impostor_vote)
-          setMyActionVote(myVote.action_vote)
+          // Reconstruir a escolha a partir do voto salvo
+          if (myVote.impostor_vote) {
+            setMyChoice({ type: 'player', playerId: myVote.impostor_vote })
+          } else if (myVote.action_vote === 'next_round') {
+            setMyChoice({ type: 'next_round' })
+          } else if (myVote.action_vote === 'end_game') {
+            setMyChoice({ type: 'end_game' })
+          }
           setHasVoted(true)
         }
       }
@@ -53,6 +67,18 @@ export function VotingScreen({ room, players, currentPlayer, onNextRound, onEndG
 
   // Realtime subscription para votos
   useEffect(() => {
+    // Carregar votos iniciais
+    const loadVotes = async () => {
+      const { data } = await supabase
+        .from('votes')
+        .select('*')
+        .eq('room_id', room.id)
+        .eq('round', room.round)
+      console.log('[Voting] Loaded votes:', data?.length)
+      setVotes(data || [])
+    }
+    loadVotes()
+
     const channel = supabase
       .channel(`votes-${room.id}-${room.round}`)
       .on(
@@ -63,7 +89,8 @@ export function VotingScreen({ room, players, currentPlayer, onNextRound, onEndG
           table: 'votes',
           filter: `room_id=eq.${room.id}`,
         },
-        async () => {
+        async (payload) => {
+          console.log('[Voting] Realtime event:', payload.eventType)
           // Recarregar votos
           const { data } = await supabase
             .from('votes')
@@ -71,22 +98,27 @@ export function VotingScreen({ room, players, currentPlayer, onNextRound, onEndG
             .eq('room_id', room.id)
             .eq('round', room.round)
 
+          console.log('[Voting] Votes after realtime:', data?.length)
           setVotes(data || [])
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('[Voting] Channel status:', status)
+      })
 
     return () => {
       supabase.removeChannel(channel)
     }
   }, [room.id, room.round])
 
-  // Processar resultados quando todos votarem
+  // Processar resultados quando todos votarem (apenas o host processa para evitar race conditions)
   useEffect(() => {
-    if (votes.length === totalPlayers && votes.length > 0 && !isProcessing && !revealResult) {
+    console.log('[Voting] Check process:', { votesCount: votes.length, totalPlayers, isProcessing, revealResult, isHost })
+    if (votes.length === totalPlayers && votes.length > 0 && !isProcessing && !revealResult && isHost) {
+      console.log('[Voting] All voted, host processing results...')
       processVotingResults()
     }
-  }, [votes, totalPlayers, isProcessing, revealResult])
+  }, [votes, totalPlayers, isProcessing, revealResult, isHost])
 
   // Contar votos para cada jogador (impostor)
   const getImpostorVoteCount = (playerId: string) => {
@@ -95,7 +127,7 @@ export function VotingScreen({ room, players, currentPlayer, onNextRound, onEndG
 
   // Contar votos de ação
   const getActionVoteCount = (action: 'next_round' | 'end_game') => {
-    return votes.filter((v) => v.action_vote === action).length
+    return votes.filter((v) => v.action_vote === action && !v.impostor_vote).length
   }
 
   // Jogadores que ainda não votaram
@@ -104,18 +136,30 @@ export function VotingScreen({ room, players, currentPlayer, onNextRound, onEndG
   )
 
   const submitVote = async () => {
-    if (!currentPlayer || !myImpostorVote || !myActionVote) return
+    if (!currentPlayer || !myChoice) return
 
     setIsSubmitting(true)
 
     try {
+      // Determinar o que salvar baseado na escolha
+      let impostorVote: string | null = null
+      let actionVote: 'next_round' | 'end_game' | null = null
+
+      if (myChoice.type === 'player') {
+        impostorVote = myChoice.playerId
+      } else if (myChoice.type === 'next_round') {
+        actionVote = 'next_round'
+      } else if (myChoice.type === 'end_game') {
+        actionVote = 'end_game'
+      }
+
       await supabase.from('votes').upsert(
         {
           room_id: room.id,
           round: room.round,
           voter_id: currentPlayer.id,
-          impostor_vote: myImpostorVote,
-          action_vote: myActionVote,
+          impostor_vote: impostorVote,
+          action_vote: actionVote,
         },
         {
           onConflict: 'room_id,round,voter_id',
@@ -131,29 +175,65 @@ export function VotingScreen({ room, players, currentPlayer, onNextRound, onEndG
 
   const processVotingResults = async () => {
     setIsProcessing(true)
+
+    // Contar votos por tipo
+    const playerVotes: Record<string, number> = {}
+    let nextRoundVotes = 0
+    let endGameVotes = 0
+
+    for (const vote of votes) {
+      if (vote.impostor_vote) {
+        playerVotes[vote.impostor_vote] = (playerVotes[vote.impostor_vote] || 0) + 1
+      } else if (vote.action_vote === 'next_round') {
+        nextRoundVotes++
+      } else if (vote.action_vote === 'end_game') {
+        endGameVotes++
+      }
+    }
+
+    // Encontrar o jogador mais votado
+    let mostVotedId: string | null = null
+    let maxVotes = 0
+    for (const [playerId, count] of Object.entries(playerVotes)) {
+      if (count > maxVotes) {
+        maxVotes = count
+        mostVotedId = playerId
+      }
+    }
+
+    // Guardar informação do mais votado para exibir
+    if (mostVotedId) {
+      const votedPlayer = players.find((p) => p.id === mostVotedId)
+      setMostVotedPlayer({
+        player: votedPlayer || null,
+        wasImpostor: votedPlayer?.is_impostor ?? false,
+      })
+    } else {
+      setMostVotedPlayer(null)
+    }
+
     setRevealResult(true)
 
     // Aguardar um momento para mostrar resultado
-    await new Promise((resolve) => setTimeout(resolve, 3000))
+    await new Promise((resolve) => setTimeout(resolve, 5000))
 
-    // Contar votos de ação
-    const nextRoundVotes = votes.filter((v) => v.action_vote === 'next_round').length
-    const endGameVotes = votes.filter((v) => v.action_vote === 'end_game').length
-
-    // Determinar ação com desempate
-    // Prioridade: próxima rodada > finalizar (impostor vote já é prioritário)
+    // Determinar ação baseada na maioria
+    // Prioridade: votos em jogadores > próxima rodada > finalizar
     let action: 'next_round' | 'end_game'
 
-    if (nextRoundVotes > endGameVotes) {
+    if (maxVotes >= nextRoundVotes && maxVotes >= endGameVotes) {
+      // Maioria votou em jogadores - dar pontos e ir para próxima rodada
+      action = 'next_round'
+    } else if (nextRoundVotes > endGameVotes) {
       action = 'next_round'
     } else if (endGameVotes > nextRoundVotes) {
       action = 'end_game'
     } else {
-      // Empate: próxima rodada tem prioridade sobre finalizar
+      // Empate total: próxima rodada tem prioridade
       action = 'next_round'
     }
 
-    // Dar ponto a quem acertou o impostor
+    // Dar ponto a quem acertou o impostor (só se votaram em jogador)
     const realImpostorId = impostor?.id
     if (realImpostorId) {
       const correctVoters = votes
@@ -226,24 +306,59 @@ export function VotingScreen({ room, players, currentPlayer, onNextRound, onEndG
     }
   }
 
-  const canSubmit = myImpostorVote && myActionVote && !hasVoted
+  const canSubmit = myChoice && !hasVoted
+
+  // Verificar se um jogador está selecionado
+  const isPlayerSelected = (playerId: string) => {
+    return myChoice?.type === 'player' && myChoice.playerId === playerId
+  }
 
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="text-center">
         <CardTitle className="text-2xl">Rodada {room.round} - Votação</CardTitle>
         <CardDescription>
-          A palavra era: <strong className="text-foreground">{room.word}</strong>
+          {revealResult ? (
+            <>A palavra era: <strong className="text-foreground">{room.word}</strong></>
+          ) : (
+            'Quem você acha que é o impostor?'
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Se está revelando resultado */}
         {revealResult && (
-          <div className="bg-gradient-to-br from-amber-500/20 to-orange-600/30 border-2 border-amber-500/50 rounded-xl p-6 text-center">
-            <p className="text-sm text-muted-foreground mb-2">O impostor era:</p>
-            <p className="text-3xl font-bold text-amber-400 mb-4">
-              🕵️ {impostor?.name}
-            </p>
+          <div className="space-y-4">
+            {/* Quem foi o mais votado */}
+            {mostVotedPlayer?.player ? (
+              <div className={`rounded-xl p-6 text-center border-2 ${mostVotedPlayer.wasImpostor
+                ? 'bg-gradient-to-br from-green-500/20 to-emerald-600/30 border-green-500/50'
+                : 'bg-gradient-to-br from-red-500/20 to-rose-600/30 border-red-500/50'
+                }`}>
+                <p className="text-sm text-muted-foreground mb-2">O mais votado foi:</p>
+                <p className="text-3xl font-bold mb-2">
+                  {mostVotedPlayer.player.name}
+                </p>
+                {mostVotedPlayer.wasImpostor ? (
+                  <p className="text-xl text-green-400 font-semibold">✅ ERA O IMPOSTOR!</p>
+                ) : (
+                  <p className="text-xl text-red-400 font-semibold">❌ NÃO ERA O IMPOSTOR</p>
+                )}
+              </div>
+            ) : (
+              <div className="bg-muted/50 rounded-xl p-6 text-center border-2 border-muted">
+                <p className="text-muted-foreground">Ninguém foi votado como impostor</p>
+              </div>
+            )}
+
+            {/* Quem era o impostor de verdade */}
+            <div className="bg-gradient-to-br from-amber-500/20 to-orange-600/30 border-2 border-amber-500/50 rounded-xl p-4 text-center">
+              <p className="text-sm text-muted-foreground mb-1">O impostor era:</p>
+              <p className="text-2xl font-bold text-amber-400">
+                🕵️ {impostor?.name}
+              </p>
+            </div>
+
             <div className="flex items-center justify-center gap-2 text-muted-foreground">
               <Loader2 className="size-4 animate-spin" />
               <span>Processando votos...</span>
@@ -251,66 +366,78 @@ export function VotingScreen({ room, players, currentPlayer, onNextRound, onEndG
           </div>
         )}
 
-        {/* Votação de impostor */}
+        {/* Votação única */}
         {!revealResult && (
           <>
             <div className="space-y-3">
-              <p className="text-sm font-medium flex items-center gap-2">
-                🕵️ Quem é o impostor?
+              <p className="text-sm font-medium text-center">
+                Escolha UMA opção:
               </p>
-              <div className="grid gap-2">
-                {players.map((player) => (
-                  <button
-                    key={player.id}
-                    onClick={() => !hasVoted && setMyImpostorVote(player.id)}
-                    disabled={hasVoted}
-                    className={`flex items-center justify-between px-4 py-3 rounded-lg border-2 transition-all ${myImpostorVote === player.id
+
+              {/* Seção: Votar em jogador como impostor */}
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground flex items-center gap-2">
+                  🕵️ Votar em quem você acha que é o impostor:
+                </p>
+                <div className="grid gap-2">
+                  {votablePlayers.map((player) => (
+                    <button
+                      key={player.id}
+                      onClick={() => !hasVoted && setMyChoice({ type: 'player', playerId: player.id })}
+                      disabled={hasVoted}
+                      className={`flex items-center justify-between px-4 py-3 rounded-lg border-2 transition-all ${isPlayerSelected(player.id)
                         ? 'border-primary bg-primary/10'
                         : 'border-muted bg-muted/50 hover:border-muted-foreground/30'
-                      } ${hasVoted ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <User className="size-4" />
-                      {player.name}
-                      {player.id === currentPlayer?.id && (
-                        <span className="text-xs text-muted-foreground">(você)</span>
-                      )}
-                    </span>
-                    <span className="flex items-center gap-2">
-                      {myImpostorVote === player.id && (
-                        <Check className="size-4 text-primary" />
-                      )}
-                      {votes.length > 0 && (
-                        <span className="text-xs text-muted-foreground">
-                          {getImpostorVoteCount(player.id)} voto{getImpostorVoteCount(player.id) !== 1 ? 's' : ''}
-                        </span>
-                      )}
-                    </span>
-                  </button>
-                ))}
+                        } ${hasVoted ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <User className="size-4" />
+                        {player.name}
+                        {player.id === currentPlayer?.id && (
+                          <span className="text-xs text-muted-foreground">(você)</span>
+                        )}
+                      </span>
+                      <span className="flex items-center gap-2">
+                        {isPlayerSelected(player.id) && (
+                          <Check className="size-4 text-primary" />
+                        )}
+                        {votes.length > 0 && (
+                          <span className="text-xs text-muted-foreground">
+                            {getImpostorVoteCount(player.id)} voto{getImpostorVoteCount(player.id) !== 1 ? 's' : ''}
+                          </span>
+                        )}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            {/* Votação de ação */}
-            <div className="space-y-3">
-              <p className="text-sm font-medium flex items-center gap-2">
-                📋 O que fazer agora?
-              </p>
+              {/* Divisor */}
+              <div className="relative py-2">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">ou</span>
+                </div>
+              </div>
+
+              {/* Seção: Ações alternativas */}
               <div className="grid gap-2">
                 <button
-                  onClick={() => !hasVoted && setMyActionVote('next_round')}
+                  onClick={() => !hasVoted && setMyChoice({ type: 'next_round' })}
                   disabled={hasVoted}
-                  className={`flex items-center justify-between px-4 py-3 rounded-lg border-2 transition-all ${myActionVote === 'next_round'
-                      ? 'border-green-500 bg-green-500/10'
-                      : 'border-muted bg-muted/50 hover:border-muted-foreground/30'
+                  className={`flex items-center justify-between px-4 py-3 rounded-lg border-2 transition-all ${myChoice?.type === 'next_round'
+                    ? 'border-green-500 bg-green-500/10'
+                    : 'border-muted bg-muted/50 hover:border-muted-foreground/30'
                     } ${hasVoted ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
                 >
                   <span className="flex items-center gap-2">
                     <Play className="size-4" />
-                    Próxima rodada
+                    Próxima rodada (pular votação)
                   </span>
                   <span className="flex items-center gap-2">
-                    {myActionVote === 'next_round' && (
+                    {myChoice?.type === 'next_round' && (
                       <Check className="size-4 text-green-500" />
                     )}
                     {votes.length > 0 && (
@@ -322,11 +449,11 @@ export function VotingScreen({ room, players, currentPlayer, onNextRound, onEndG
                 </button>
 
                 <button
-                  onClick={() => !hasVoted && setMyActionVote('end_game')}
+                  onClick={() => !hasVoted && setMyChoice({ type: 'end_game' })}
                   disabled={hasVoted}
-                  className={`flex items-center justify-between px-4 py-3 rounded-lg border-2 transition-all ${myActionVote === 'end_game'
-                      ? 'border-red-500 bg-red-500/10'
-                      : 'border-muted bg-muted/50 hover:border-muted-foreground/30'
+                  className={`flex items-center justify-between px-4 py-3 rounded-lg border-2 transition-all ${myChoice?.type === 'end_game'
+                    ? 'border-red-500 bg-red-500/10'
+                    : 'border-muted bg-muted/50 hover:border-muted-foreground/30'
                     } ${hasVoted ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
                 >
                   <span className="flex items-center gap-2">
@@ -334,7 +461,7 @@ export function VotingScreen({ room, players, currentPlayer, onNextRound, onEndG
                     Finalizar jogo
                   </span>
                   <span className="flex items-center gap-2">
-                    {myActionVote === 'end_game' && (
+                    {myChoice?.type === 'end_game' && (
                       <Check className="size-4 text-red-500" />
                     )}
                     {votes.length > 0 && (

@@ -19,7 +19,9 @@ export function Lobby({ room, players, onGameStart }: LobbyProps) {
   const [isStarting, setIsStarting] = useState(false)
   const clientId = getClientId()
   const isHost = room.host_id === clientId
-  const canStart = players.length >= 3
+  const isDev = process.env.NODE_ENV === 'development'
+  const minPlayers = isDev ? 1 : 3
+  const canStart = players.length >= minPlayers
 
   const copyLink = async () => {
     const link = `${window.location.origin}/room/${room.code}`
@@ -76,7 +78,7 @@ export function Lobby({ room, players, onGameStart }: LobbyProps) {
         <CardDescription>
           {canStart
             ? 'Pronto para começar!'
-            : `Aguardando jogadores... (${players.length}/3 mínimo)`}
+            : `Aguardando jogadores... (${players.length}/${minPlayers} mínimo)`}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
