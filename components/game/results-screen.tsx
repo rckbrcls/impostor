@@ -2,6 +2,8 @@
 
 import { useRouter } from 'next/navigation'
 import { supabase, type Player, type Room } from '@/lib/supabase'
+import { getClientId } from '@/lib/game-utils'
+import { getRandomWord } from '@/lib/words'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Trophy, Home, RotateCcw, Skull, Users } from 'lucide-react'
@@ -33,24 +35,34 @@ export function ResultsScreen({ room, players }: ResultsScreenProps) {
     router.push('/')
   }
 
+  const clientId = getClientId()
+  const isHost = room.host_id === clientId
+
   const playAgain = async () => {
+    if (!isHost) return
+
     try {
-      // Limpar votos antigos
+      // 0. Proactive Cleanup: Tentar limpar votos aqui também
       await supabase
         .from('votes')
         .delete()
         .eq('room_id', room.id)
 
-      // Resetar jogadores
+      // 1. Resetar status de todos os jogadores (pontuação, impostor, etc)
       await supabase
         .from('players')
         .update({ score: 0, is_impostor: false, is_eliminated: false })
         .eq('room_id', room.id)
 
-      // Voltar sala para playing (nova partida)
+      // 2. Voltar sala para 'waiting' (Lobby)
+      // O Lobby vai lidar com a limpeza de votos de cada jogador (best effort)
+      // E o jogo continuará incrementando o round (Round 1 -> 2 -> 3...) para evitar colisão de votos
       await supabase
         .from('rooms')
-        .update({ status: 'playing', round: 1, word: null })
+        .update({
+          status: 'waiting',
+          word: null
+        })
         .eq('id', room.id)
     } catch (error) {
       console.error('Erro ao reiniciar jogo:', error)
@@ -128,10 +140,12 @@ export function ResultsScreen({ room, players }: ResultsScreenProps) {
             <Home className="mr-2" />
             Início
           </Button>
-          <Button className="flex-1" onClick={playAgain}>
-            <RotateCcw className="mr-2" />
-            Jogar Novamente
-          </Button>
+          {isHost && (
+            <Button className="flex-1" onClick={playAgain}>
+              <RotateCcw className="mr-2" />
+              Jogar Novamente
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

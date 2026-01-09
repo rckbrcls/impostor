@@ -23,6 +23,31 @@ export function Lobby({ room, players, onGameStart }: LobbyProps) {
   const minPlayers = isDev ? 1 : 3
   const canStart = players.length >= minPlayers
 
+  // Limpar votos antigos ao entrar no lobby (preparar para nova partida)
+  useEffect(() => {
+    const cleanVotes = async () => {
+      // Encontrar meu jogador
+      const myPlayer = players.find(p => p.client_id === clientId)
+      if (!myPlayer) return
+
+      try {
+        console.log('[Lobby] Cleaning votes for player:', myPlayer.name)
+        const { count, error } = await supabase
+          .from('votes')
+          .delete()
+          .eq('room_id', room.id)
+          .eq('voter_id', myPlayer.id)
+
+        if (error) throw error
+        console.log('[Lobby] Cleanup success, deleted rows:', count)
+      } catch (err) {
+        console.error('[Lobby] Error cleaning votes:', err)
+      }
+    }
+
+    cleanVotes()
+  }, [room.id, players, clientId])
+
   const copyLink = async () => {
     const link = `${window.location.origin}/room/${room.code}`
     await navigator.clipboard.writeText(link)
@@ -35,6 +60,13 @@ export function Lobby({ room, players, onGameStart }: LobbyProps) {
 
     setIsStarting(true)
     try {
+      // Force cleanup: Host tenta limpar tudo antes de começar
+      console.log('[Lobby] Host starting game, force cleaning all votes...')
+      await supabase
+        .from('votes')
+        .delete()
+        .eq('room_id', room.id)
+
       // Sortear impostor
       const impostorIndex = Math.floor(Math.random() * players.length)
       const impostorId = players[impostorIndex].id
