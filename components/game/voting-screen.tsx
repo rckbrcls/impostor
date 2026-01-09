@@ -5,7 +5,7 @@ import { supabase, type Player, type Room, type Vote } from '@/lib/supabase'
 import { getRandomWord } from '@/lib/words'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Check, User, Play, Flag, Loader2 } from 'lucide-react'
+import { Check, User, Flag, Loader2 } from 'lucide-react'
 
 interface VotingScreenProps {
   room: Room
@@ -319,7 +319,7 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
         <CardTitle className="text-2xl">Rodada {room.round} - Votação</CardTitle>
         <CardDescription>
           {revealResult ? (
-            <>A palavra era: <strong className="text-foreground">{room.word}</strong></>
+            <>A palavra era: <strong className="text-foreground text-2xl block mt-2">{room.word}</strong></>
           ) : (
             'Quem você acha que é o impostor?'
           )}
@@ -414,32 +414,8 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
                 </div>
               </div>
 
-              {/* Seção: Ações alternativas */}
+              {/* Seção: Finalizar jogo */}
               <div className="grid gap-2">
-                <button
-                  onClick={() => !hasVoted && setMyChoice({ type: 'next_round' })}
-                  disabled={hasVoted}
-                  className={`flex items-center justify-between px-4 py-3 rounded-lg border-2 transition-all ${myChoice?.type === 'next_round'
-                    ? 'border-green-500 bg-green-500/10'
-                    : 'border-muted bg-muted/50 hover:border-muted-foreground/30'
-                    } ${hasVoted ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
-                >
-                  <span className="flex items-center gap-2">
-                    <Play className="size-4" />
-                    Próxima rodada (pular votação)
-                  </span>
-                  <span className="flex items-center gap-2">
-                    {myChoice?.type === 'next_round' && (
-                      <Check className="size-4 text-green-500" />
-                    )}
-                    {votes.length > 0 && (
-                      <span className="text-xs text-muted-foreground">
-                        {getActionVoteCount('next_round')} voto{getActionVoteCount('next_round') !== 1 ? 's' : ''}
-                      </span>
-                    )}
-                  </span>
-                </button>
-
                 <button
                   onClick={() => !hasVoted && setMyChoice({ type: 'end_game' })}
                   disabled={hasVoted}
