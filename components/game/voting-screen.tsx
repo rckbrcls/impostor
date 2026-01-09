@@ -351,14 +351,6 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
               </div>
             )}
 
-            {/* Quem era o impostor de verdade */}
-            <div className="bg-gradient-to-br from-amber-500/20 to-orange-600/30 border-2 border-amber-500/50 rounded-xl p-4 text-center">
-              <p className="text-sm text-muted-foreground mb-1">O impostor era:</p>
-              <p className="text-2xl font-bold text-amber-400">
-                🕵️ {impostor?.name}
-              </p>
-            </div>
-
             <div className="flex items-center justify-center gap-2 text-muted-foreground">
               <Loader2 className="size-4 animate-spin" />
               <span>Processando votos...</span>
