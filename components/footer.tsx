@@ -6,13 +6,13 @@ export function Footer() {
   const { t } = useLanguage();
 
   return (
-    <footer className="py-4 text-center text-sm text-muted-foreground">
+    <footer className="py-6 text-center text-sm border-t-2 border-black dark:border-white bg-white dark:bg-zinc-900">
       {t('footer.made_by')}{' '}
       <a
         href="https://www.erickbarcelos.com"
         target="_blank"
         rel="noopener noreferrer"
-        className="underline hover:text-foreground transition-colors"
+        className="font-bold hover:underline decoration-2 underline-offset-4"
       >
         erick barcelos
       </a>

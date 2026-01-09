@@ -117,7 +117,7 @@ export function Lobby({ room, players, onGameStart }: LobbyProps) {
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Lista de jogadores */}
-        <div className="bg-muted rounded-lg p-4">
+        <div className="border-2 border-black dark:border-white shadow-[4px_4px_0_0] dark:shadow-white p-4">
           <p className="text-sm text-muted-foreground mb-2">
             {t('lobby.players_title', players.length)}
           </p>
@@ -125,7 +125,7 @@ export function Lobby({ room, players, onGameStart }: LobbyProps) {
             {players.map((player) => (
               <li
                 key={player.id}
-                className="flex items-center gap-2 bg-background rounded-md px-3 py-2"
+                className="flex items-center gap-2 border-2 border-black dark:border-white shadow-[2px_2px_0_0] dark:shadow-white bg-white dark:bg-zinc-900 px-3 py-2"
               >
                 <span className="text-lg">
                   {player.client_id === room.host_id ? '👑' : '🎮'}

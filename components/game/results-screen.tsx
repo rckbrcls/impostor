@@ -89,7 +89,8 @@ export function ResultsScreen({ room, players }: ResultsScreenProps) {
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Revelação da palavra */}
-        <div className="bg-gradient-to-br from-primary/10 to-primary/20 rounded-xl p-6 text-center border-2 border-primary/30">
+        {/* Revelação da palavra */}
+        <div className="bg-primary/10 p-6 text-center border-2 border-black shadow-[4px_4px_0_0] dark:border-white dark:shadow-white">
           <p className="text-sm text-muted-foreground mb-2">{t('results.word_was')}</p>
           <p className="text-3xl font-bold text-primary uppercase">
             {room.word}
@@ -97,9 +98,10 @@ export function ResultsScreen({ room, players }: ResultsScreenProps) {
         </div>
 
         {/* Quem era o impostor */}
-        <div className={`rounded-xl p-4 text-center border-2 ${impostorWon
-          ? 'bg-gradient-to-br from-red-500/20 to-rose-600/30 border-red-500/50'
-          : 'bg-gradient-to-br from-green-500/20 to-emerald-600/30 border-green-500/50'
+        {/* Quem era o impostor */}
+        <div className={`p-4 text-center border-2 border-black shadow-[4px_4px_0_0] dark:border-white dark:shadow-white ${impostorWon
+          ? 'bg-red-500/20'
+          : 'bg-green-500/20'
           }`}>
           <p className="text-sm text-muted-foreground mb-1">{t('results.impostor_was')}</p>
           <p className="text-2xl font-bold">
@@ -114,7 +116,7 @@ export function ResultsScreen({ room, players }: ResultsScreenProps) {
 
         {/* Jogadores eliminados */}
         {eliminatedPlayers.length > 0 && (
-          <div className="bg-muted/50 rounded-lg p-4">
+          <div className="border-2 border-black shadow-[2px_2px_0_0] dark:border-white dark:shadow-white p-4">
             <p className="text-sm text-muted-foreground mb-2 flex items-center gap-2">
               <Users className="size-4" />
               {t('results.eliminated_title')}
@@ -123,7 +125,7 @@ export function ResultsScreen({ room, players }: ResultsScreenProps) {
               {eliminatedPlayers.map((player) => (
                 <span
                   key={player.id}
-                  className="px-3 py-1 rounded-full text-sm bg-red-500/20 text-red-400 border border-red-500/30"
+                  className="px-3 py-1 text-sm bg-red-500/20 text-red-500 border-2 border-black dark:border-white font-semibold"
                 >
                   {player.name}
                 </span>

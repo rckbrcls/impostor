@@ -12,7 +12,7 @@ export function LanguageSwitcher() {
       variant="ghost"
       size="sm"
       onClick={() => setLanguage(language === 'pt' ? 'en' : 'pt')}
-      className="absolute top-4 right-4 gap-2 z-50"
+      className="gap-2"
     >
       <Languages className="h-4 w-4" />
       {language === 'pt' ? 'EN' : 'PT'}

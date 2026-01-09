@@ -327,9 +327,9 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
           <div className="space-y-4">
             {/* Quem foi o mais votado */}
             {mostVotedPlayer?.player ? (
-              <div className={`rounded-xl p-6 text-center border-2 ${mostVotedPlayer.wasImpostor
-                ? 'bg-gradient-to-br from-green-500/20 to-emerald-600/30 border-green-500/50'
-                : 'bg-gradient-to-br from-orange-500/20 to-amber-600/30 border-orange-500/50'
+              <div className={`p-6 text-center border-2 border-black shadow-[4px_4px_0_0] dark:border-white dark:shadow-white ${mostVotedPlayer.wasImpostor
+                ? 'bg-green-500/20'
+                : 'bg-orange-500/20'
                 }`}>
                 <p className="text-sm text-muted-foreground mb-2">{t('voting.most_voted_label')}</p>
                 <p className="text-3xl font-bold mb-2">
@@ -342,7 +342,7 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
                 )}
               </div>
             ) : (
-              <div className="bg-muted/50 rounded-xl p-6 text-center border-2 border-muted">
+              <div className="p-6 text-center border-2 border-black shadow-[4px_4px_0_0] dark:border-white dark:shadow-white">
                 <p className="text-muted-foreground">{t('voting.no_votes')}</p>
               </div>
             )}
@@ -499,8 +499,8 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
             )}
 
             {hasVoted && (
-              <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 text-center">
-                <p className="text-sm text-green-400 flex items-center justify-center gap-2">
+              <div className="bg-green-500/10 border-2 border-black shadow-[2px_2px_0_0] dark:border-white dark:shadow-white p-3 text-center">
+                <p className="text-sm text-green-600 dark:text-green-400 flex items-center justify-center gap-2 font-semibold">
                   <Check className="size-4" />
                   {t('voting.confirmed')}
                 </p>

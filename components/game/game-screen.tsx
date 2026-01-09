@@ -49,9 +49,9 @@ export function GameScreen({ room, players, currentPlayer, isHost, onStartVoting
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Resultado do jogador */}
-        <div className={`rounded-xl p-8 text-center ${isImpostor
-          ? 'bg-gradient-to-br from-red-500/20 to-red-600/30 border-2 border-red-500/50'
-          : 'bg-gradient-to-br from-green-500/20 to-emerald-600/30 border-2 border-green-500/50'
+        <div className={`p-8 text-center border-2 border-black shadow-[4px_4px_0_0] dark:border-white dark:shadow-white ${isImpostor
+          ? 'bg-red-500/20'
+          : 'bg-green-500/20'
           }`}>
           {isImpostor ? (
             <>
@@ -77,7 +77,7 @@ export function GameScreen({ room, players, currentPlayer, isHost, onStartVoting
         </div>
 
         {/* Lista de jogadores */}
-        <div className="bg-muted rounded-lg p-4">
+        <div className="border-2 border-black shadow-[4px_4px_0_0] dark:border-white dark:shadow-white p-4">
           <p className="text-sm text-muted-foreground mb-2 text-center">
             {t('game.players_round')}
           </p>
@@ -85,11 +85,11 @@ export function GameScreen({ room, players, currentPlayer, isHost, onStartVoting
             {players.map((player) => (
               <span
                 key={player.id}
-                className={`px-3 py-1 rounded-full text-sm ${player.is_eliminated
-                  ? 'bg-red-500/20 text-red-400 line-through opacity-60'
+                className={`px-3 py-1 text-sm border-2 border-black dark:border-white font-semibold ${player.is_eliminated
+                  ? 'bg-red-500/20 text-red-500 line-through opacity-60'
                   : player.client_id === clientId
                     ? 'bg-primary text-primary-foreground'
-                    : 'bg-background'
+                    : 'bg-white dark:bg-zinc-900'
                   }`}
               >
                 {player.name}

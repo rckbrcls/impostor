@@ -71,7 +71,7 @@ export function CreateRoomForm() {
           <CardDescription>{t('create_room.success_desc')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="bg-muted rounded-lg p-4 text-center">
+          <div className="border-2 border-black dark:border-white shadow-[4px_4px_0_0] dark:shadow-white p-4 text-center">
             <p className="text-sm text-muted-foreground mb-1">{t('create_room.room_code')}</p>
             <p className="text-4xl font-bold tracking-widest">{roomCode}</p>
           </div>

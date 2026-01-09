@@ -3,7 +3,7 @@ import { Geist, Geist_Mono, Inter, Fredoka } from "next/font/google";
 import "./globals.css";
 
 import { LanguageProvider } from "@/components/language-context";
-import { LanguageSwitcher } from "@/components/language-switcher";
+import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
@@ -40,7 +40,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${fredoka.variable} antialiased h-[100svh] overflow-hidden flex flex-col`}
       >
         <LanguageProvider>
-          <LanguageSwitcher />
+          <Header />
           <main className="flex-1 w-full overflow-y-auto">
             {children}
           </main>
