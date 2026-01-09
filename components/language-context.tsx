@@ -31,7 +31,7 @@ export const translations = {
     'home.subtitle': 'Descubra quem é o impostor entre seus amigos!',
     'home.create_room': '🎮 Criar Nova Sala',
     'home.join_room': '🚪 Entrar em uma Sala',
-    'home.footer': 'Jogue com 3+ amigos • Cada rodada, alguém é o impostor!',
+
 
     // Create Room
     'create_room.title': 'Criar Nova Sala',
@@ -133,7 +133,7 @@ export const translations = {
     'home.subtitle': 'Find the impostor among your friends!',
     'home.create_room': '🎮 Create New Room',
     'home.join_room': '🚪 Join a Room',
-    'home.footer': 'Play with 3+ friends • Every round, someone is the impostor!',
+
 
     // Create Room
     'create_room.title': 'Create New Room',

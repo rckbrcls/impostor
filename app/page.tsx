@@ -89,9 +89,7 @@ export default function Home() {
         )}
 
         {/* Footer */}
-        <p className="text-center text-xs text-muted-foreground">
-          {t('home.footer')}
-        </p>
+
       </div>
     </main>
   )
