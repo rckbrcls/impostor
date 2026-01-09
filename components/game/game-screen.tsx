@@ -1,18 +1,39 @@
 'use client'
 
+import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { type Player, type Room } from '@/lib/supabase'
+import { Button } from '@/components/ui/button'
+import { supabase, type Player, type Room } from '@/lib/supabase'
 import { getClientId } from '@/lib/game-utils'
+import { Vote } from 'lucide-react'
 
 interface GameScreenProps {
   room: Room
   players: Player[]
   currentPlayer: Player | null
+  isHost: boolean
+  onStartVoting: () => void
 }
 
-export function GameScreen({ room, players, currentPlayer }: GameScreenProps) {
+export function GameScreen({ room, players, currentPlayer, isHost, onStartVoting }: GameScreenProps) {
+  const [isStartingVote, setIsStartingVote] = useState(false)
   const clientId = getClientId()
   const isImpostor = currentPlayer?.is_impostor ?? false
+
+  const handleStartVoting = async () => {
+    setIsStartingVote(true)
+    try {
+      await supabase
+        .from('rooms')
+        .update({ status: 'voting' })
+        .eq('id', room.id)
+      onStartVoting()
+    } catch (error) {
+      console.error('Erro ao iniciar votação:', error)
+    } finally {
+      setIsStartingVote(false)
+    }
+  }
 
   return (
     <Card className="w-full max-w-md mx-auto">
@@ -27,8 +48,8 @@ export function GameScreen({ room, players, currentPlayer }: GameScreenProps) {
       <CardContent className="space-y-6">
         {/* Resultado do jogador */}
         <div className={`rounded-xl p-8 text-center ${isImpostor
-            ? 'bg-gradient-to-br from-red-500/20 to-red-600/30 border-2 border-red-500/50'
-            : 'bg-gradient-to-br from-green-500/20 to-emerald-600/30 border-2 border-green-500/50'
+          ? 'bg-gradient-to-br from-red-500/20 to-red-600/30 border-2 border-red-500/50'
+          : 'bg-gradient-to-br from-green-500/20 to-emerald-600/30 border-2 border-green-500/50'
           }`}>
           {isImpostor ? (
             <>
@@ -63,8 +84,8 @@ export function GameScreen({ room, players, currentPlayer }: GameScreenProps) {
               <span
                 key={player.id}
                 className={`px-3 py-1 rounded-full text-sm ${player.client_id === clientId
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-background'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-background'
                   }`}
               >
                 {player.name}
@@ -73,9 +94,21 @@ export function GameScreen({ room, players, currentPlayer }: GameScreenProps) {
           </div>
         </div>
 
-        <p className="text-center text-sm text-muted-foreground">
-          Aguarde o host encerrar a rodada...
-        </p>
+        {/* Botão de votação para o host */}
+        {isHost ? (
+          <Button
+            className="w-full"
+            onClick={handleStartVoting}
+            disabled={isStartingVote}
+          >
+            <Vote className="mr-2 size-4" />
+            {isStartingVote ? 'Iniciando...' : 'Iniciar Votação'}
+          </Button>
+        ) : (
+          <p className="text-center text-sm text-muted-foreground">
+            Aguarde o host iniciar a votação...
+          </p>
+        )}
       </CardContent>
     </Card>
   )

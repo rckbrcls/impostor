@@ -59,6 +59,8 @@ export default function RoomPage() {
         setPhase('joining')
       } else if (roomData.status === 'ended') {
         setPhase('ended')
+      } else if (roomData.status === 'voting') {
+        setPhase('voting')
       } else if (roomData.status === 'playing') {
         setPhase('playing')
       } else {
@@ -91,6 +93,8 @@ export default function RoomPage() {
 
           if (newRoom.status === 'ended') {
             setPhase('ended')
+          } else if (newRoom.status === 'voting') {
+            setPhase('voting')
           } else if (newRoom.status === 'playing') {
             setPhase('playing')
           } else if (newRoom.status === 'waiting') {
@@ -172,14 +176,21 @@ export default function RoomPage() {
         />
       )}
 
-      {phase === 'playing' && !isHost && (
-        <GameScreen room={room} players={players} currentPlayer={currentPlayer} />
+      {phase === 'playing' && (
+        <GameScreen
+          room={room}
+          players={players}
+          currentPlayer={currentPlayer}
+          isHost={isHost}
+          onStartVoting={() => setPhase('voting')}
+        />
       )}
 
-      {phase === 'playing' && isHost && (
+      {phase === 'voting' && (
         <VotingScreen
           room={room}
           players={players}
+          currentPlayer={currentPlayer}
           onNextRound={() => setPhase('playing')}
           onEndGame={() => setPhase('ended')}
         />
