@@ -4,11 +4,13 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { LanguageSwitcher } from '@/components/language-switcher'
 import { useLanguage } from '@/components/language-context'
+import { ModeToggle } from '@/components/mode-toggle'
 import { Home, Menu } from 'lucide-react'
 import {
   Sheet,
   SheetContent,
   SheetDescription,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
@@ -16,7 +18,7 @@ import {
 import { useState } from 'react'
 
 export function Header() {
-  const { t } = useLanguage()
+  /* const { t } = useLanguage() */
   const [isOpen, setIsOpen] = useState(false)
 
   return (
@@ -49,11 +51,14 @@ export function Header() {
                   Impostor
                 </Link>
               </Button>
-              <div className="flex p-4 items-center justify-between">
-                <span className="text-sm font-medium">Language</span>
-                <LanguageSwitcher />
-              </div>
+
+
+
             </div>
+            <SheetFooter className="flex-row justify-between sm:justify-end gap-2">
+              <LanguageSwitcher />
+              <ModeToggle />
+            </SheetFooter>
           </SheetContent>
         </Sheet>
       </div>
@@ -70,7 +75,10 @@ export function Header() {
             <span className="font-bold text-lg">Impostor</span>
           </Link>
         </Button>
-        <LanguageSwitcher />
+        <div className="flex items-center gap-2">
+          <LanguageSwitcher />
+          <ModeToggle />
+        </div>
       </header>
     </>
   )
