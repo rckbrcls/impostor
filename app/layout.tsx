@@ -27,9 +27,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable}>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased h-[100svh] overflow-hidden flex flex-col`}
       >
-        <main className="flex-1">
+        <main className="flex-1 w-full overflow-y-auto">
           {children}
         </main>
         <footer className="py-4 text-center text-sm text-muted-foreground">
