@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 
+import { LanguageProvider } from "@/components/language-context";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { Footer } from "@/components/footer";
+
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
 const geistSans = Geist({
@@ -29,20 +33,13 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased h-[100svh] overflow-hidden flex flex-col`}
       >
-        <main className="flex-1 w-full overflow-y-auto">
-          {children}
-        </main>
-        <footer className="py-4 text-center text-sm text-muted-foreground">
-          made by{' '}
-          <a
-            href="https://www.erickbarcelos.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline hover:text-foreground transition-colors"
-          >
-            erick barcelos
-          </a>
-        </footer>
+        <LanguageProvider>
+          <LanguageSwitcher />
+          <main className="flex-1 w-full overflow-y-auto">
+            {children}
+          </main>
+          <Footer />
+        </LanguageProvider>
       </body>
     </html>
   );

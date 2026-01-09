@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { supabase, type Player, type Room } from '@/lib/supabase'
 import { getClientId } from '@/lib/game-utils'
 import { Vote } from 'lucide-react'
+import { useLanguage } from '@/components/language-context'
 
 interface GameScreenProps {
   room: Room
@@ -19,6 +20,7 @@ export function GameScreen({ room, players, currentPlayer, isHost, onStartVoting
   const [isStartingVote, setIsStartingVote] = useState(false)
   const clientId = getClientId()
   const isImpostor = currentPlayer?.is_impostor ?? false
+  const { t } = useLanguage()
 
   const handleStartVoting = async () => {
     setIsStartingVote(true)
@@ -39,10 +41,10 @@ export function GameScreen({ room, players, currentPlayer, isHost, onStartVoting
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="text-center">
         <CardTitle className="text-xl">
-          Rodada {room.round}
+          {t('game.round', room.round)}
         </CardTitle>
         <CardDescription>
-          {players.length} jogadores
+          {t('game.players_count', players.length)}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -55,20 +57,20 @@ export function GameScreen({ room, players, currentPlayer, isHost, onStartVoting
             <>
               <p className="text-6xl mb-4">🕵️</p>
               <p className="text-3xl font-bold text-red-400">
-                VOCÊ É O IMPOSTOR!
+                {t('game.impostor_title')}
               </p>
               <p className="text-muted-foreground mt-2">
-                Descubra a palavra sem ser pego!
+                {t('game.impostor_desc')}
               </p>
             </>
           ) : (
             <>
-              <p className="text-sm text-muted-foreground mb-2">A palavra é:</p>
+              <p className="text-sm text-muted-foreground mb-2">{t('game.word_label')}</p>
               <p className="text-4xl font-bold text-green-400 uppercase">
                 {room.word}
               </p>
               <p className="text-muted-foreground mt-3 text-sm">
-                Descreva sem falar a palavra!
+                {t('game.word_desc')}
               </p>
             </>
           )}
@@ -77,21 +79,21 @@ export function GameScreen({ room, players, currentPlayer, isHost, onStartVoting
         {/* Lista de jogadores */}
         <div className="bg-muted rounded-lg p-4">
           <p className="text-sm text-muted-foreground mb-2 text-center">
-            Jogadores na rodada
+            {t('game.players_round')}
           </p>
           <div className="flex flex-wrap justify-center gap-2">
             {players.map((player) => (
               <span
                 key={player.id}
                 className={`px-3 py-1 rounded-full text-sm ${player.is_eliminated
-                    ? 'bg-red-500/20 text-red-400 line-through opacity-60'
-                    : player.client_id === clientId
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-background'
+                  ? 'bg-red-500/20 text-red-400 line-through opacity-60'
+                  : player.client_id === clientId
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-background'
                   }`}
               >
                 {player.name}
-                {player.is_eliminated && ' ❌'}
+                {player.is_eliminated && ` ${t('game.eliminated')}`}
               </span>
             ))}
           </div>
@@ -105,11 +107,11 @@ export function GameScreen({ room, players, currentPlayer, isHost, onStartVoting
             disabled={isStartingVote}
           >
             <Vote className="mr-2 size-4" />
-            {isStartingVote ? 'Iniciando...' : 'Iniciar Votação'}
+            {isStartingVote ? t('game.starting_voting') : t('game.start_voting')}
           </Button>
         ) : (
           <p className="text-center text-sm text-muted-foreground">
-            Aguarde o host iniciar a votação...
+            {t('game.waiting_host_vote')}
           </p>
         )}
       </CardContent>

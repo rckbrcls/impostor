@@ -7,12 +7,14 @@ import { generateRoomCode, getClientId } from '@/lib/game-utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Copy, Check, Users } from 'lucide-react'
+import { useLanguage } from '@/components/language-context'
 
 export function CreateRoomForm() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [roomCode, setRoomCode] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const { t } = useLanguage()
 
   const createRoom = async () => {
     setIsLoading(true)
@@ -61,23 +63,23 @@ export function CreateRoomForm() {
     return (
       <Card className="w-full max-w-md mx-auto">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Sala Criada! 🎉</CardTitle>
-          <CardDescription>Compartilhe o código com seus amigos</CardDescription>
+          <CardTitle className="text-2xl">{t('create_room.success_title')}</CardTitle>
+          <CardDescription>{t('create_room.success_desc')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="bg-muted rounded-lg p-4 text-center">
-            <p className="text-sm text-muted-foreground mb-1">Código da Sala</p>
+            <p className="text-sm text-muted-foreground mb-1">{t('create_room.room_code')}</p>
             <p className="text-4xl font-bold tracking-widest">{roomCode}</p>
           </div>
 
           <div className="flex gap-2">
             <Button variant="outline" className="flex-1" onClick={copyLink}>
               {copied ? <Check className="mr-2" /> : <Copy className="mr-2" />}
-              {copied ? 'Copiado!' : 'Copiar Link'}
+              {copied ? t('common.copied') : t('common.copy_link')}
             </Button>
             <Button className="flex-1" onClick={enterRoom}>
               <Users className="mr-2" />
-              Entrar na Sala
+              {t('create_room.button_enter')}
             </Button>
           </div>
         </CardContent>
@@ -88,12 +90,12 @@ export function CreateRoomForm() {
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="text-center">
-        <CardTitle className="text-2xl">Criar Nova Sala</CardTitle>
-        <CardDescription>Crie uma sala e convide seus amigos para jogar</CardDescription>
+        <CardTitle className="text-2xl">{t('create_room.title')}</CardTitle>
+        <CardDescription>{t('create_room.subtitle')}</CardDescription>
       </CardHeader>
       <CardContent>
         <Button className="w-full" size="lg" onClick={createRoom} disabled={isLoading}>
-          {isLoading ? 'Criando...' : '🎮 Criar Sala'}
+          {isLoading ? t('create_room.button_creating') : t('create_room.button_create')}
         </Button>
       </CardContent>
     </Card>

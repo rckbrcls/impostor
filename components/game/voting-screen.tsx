@@ -5,6 +5,7 @@ import { supabase, type Player, type Room, type Vote } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Check, User, Flag, Loader2, Play } from 'lucide-react'
+import { useLanguage } from '@/components/language-context'
 
 interface VotingScreenProps {
   room: Room
@@ -27,6 +28,7 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
   const [revealResult, setRevealResult] = useState(false)
   const [mostVotedPlayer, setMostVotedPlayer] = useState<{ player: Player | null; wasImpostor: boolean } | null>(null)
   const [decidedAction, setDecidedAction] = useState<'next_round' | 'end_game' | null>(null)
+  const { t } = useLanguage()
 
   const impostor = players.find((p) => p.is_impostor)
   // Jogadores ativos (não eliminados)
@@ -309,12 +311,12 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="text-center">
-        <CardTitle className="text-2xl">Rodada {room.round} - Votação</CardTitle>
+        <CardTitle className="text-2xl">{t('voting.title', room.round)}</CardTitle>
         <CardDescription>
           {revealResult ? (
-            'Resultado da votação'
+            t('voting.desc_reveal')
           ) : (
-            'Quem você acha que é o impostor?'
+            t('voting.desc_ask')
           )}
         </CardDescription>
       </CardHeader>
@@ -328,26 +330,26 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
                 ? 'bg-gradient-to-br from-green-500/20 to-emerald-600/30 border-green-500/50'
                 : 'bg-gradient-to-br from-orange-500/20 to-amber-600/30 border-orange-500/50'
                 }`}>
-                <p className="text-sm text-muted-foreground mb-2">O mais votado foi:</p>
+                <p className="text-sm text-muted-foreground mb-2">{t('voting.most_voted_label')}</p>
                 <p className="text-3xl font-bold mb-2">
                   {mostVotedPlayer.player.name}
                 </p>
                 {mostVotedPlayer.wasImpostor ? (
-                  <p className="text-xl text-green-400 font-semibold">✅ ERA O IMPOSTOR! Vocês venceram!</p>
+                  <p className="text-xl text-green-400 font-semibold">{t('voting.result_impostor')}</p>
                 ) : (
-                  <p className="text-xl text-orange-400 font-semibold">🚫 Foi eliminado! Não era o impostor.</p>
+                  <p className="text-xl text-orange-400 font-semibold">{t('voting.result_innocent')}</p>
                 )}
               </div>
             ) : (
               <div className="bg-muted/50 rounded-xl p-6 text-center border-2 border-muted">
-                <p className="text-muted-foreground">Ninguém foi votado como impostor</p>
+                <p className="text-muted-foreground">{t('voting.no_votes')}</p>
               </div>
             )}
 
             {isProcessing ? (
               <div className="flex items-center justify-center gap-2 text-muted-foreground">
                 <Loader2 className="size-4 animate-spin" />
-                <span>Processando votos...</span>
+                <span>{t('voting.processing')}</span>
               </div>
             ) : decidedAction && isHost ? (
               <div className="flex flex-col gap-3">
@@ -357,7 +359,7 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
                     className="w-full bg-green-600 hover:bg-green-700"
                   >
                     <Play className="mr-2 size-4" />
-                    Ir para Próxima Rodada
+                    {t('voting.next_round')}
                   </Button>
                 ) : (
                   <Button
@@ -366,14 +368,14 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
                     className="w-full"
                   >
                     <Flag className="mr-2 size-4" />
-                    Finalizar Jogo
+                    {t('voting.end_game')}
                   </Button>
                 )}
               </div>
             ) : decidedAction && !isHost ? (
               <div className="flex items-center justify-center gap-2 text-muted-foreground">
                 <Loader2 className="size-4 animate-spin" />
-                <span>Aguardando o host continuar...</span>
+                <span>{t('voting.waiting_host_continue')}</span>
               </div>
             ) : null}
           </div>
@@ -384,13 +386,13 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
           <>
             <div className="space-y-3">
               <p className="text-sm font-medium text-center">
-                Escolha UMA opção:
+                {t('voting.choose_option')}
               </p>
 
               {/* Seção: Votar em jogador como impostor */}
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground flex items-center gap-2">
-                  🕵️ Votar em quem você acha que é o impostor:
+                  {t('voting.vote_impostor_label')}
                 </p>
                 <div className="grid gap-2">
                   {votablePlayers.map((player) => (
@@ -407,7 +409,7 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
                         <User className="size-4" />
                         {player.name}
                         {player.id === currentPlayer?.id && (
-                          <span className="text-xs text-muted-foreground">(você)</span>
+                          <span className="text-xs text-muted-foreground">{t('common.you')}</span>
                         )}
                       </span>
                       <span className="flex items-center gap-2">
@@ -416,7 +418,7 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
                         )}
                         {votes.length > 0 && (
                           <span className="text-xs text-muted-foreground">
-                            {getImpostorVoteCount(player.id)} voto{getImpostorVoteCount(player.id) !== 1 ? 's' : ''}
+                            {t('voting.vote_count', getImpostorVoteCount(player.id), getImpostorVoteCount(player.id) !== 1 ? 's' : '')}
                           </span>
                         )}
                       </span>
@@ -431,7 +433,7 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
                   <span className="w-full border-t" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-card px-2 text-muted-foreground">ou</span>
+                  <span className="bg-card px-2 text-muted-foreground">{t('common.or')}</span>
                 </div>
               </div>
 
@@ -447,7 +449,7 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
                 >
                   <span className="flex items-center gap-2">
                     <Play className="size-4" />
-                    Próxima rodada
+                    {t('voting.option_next_round')}
                   </span>
                   <span className="flex items-center gap-2">
                     {myChoice?.type === 'next_round' && (
@@ -455,7 +457,7 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
                     )}
                     {votes.length > 0 && (
                       <span className="text-xs text-muted-foreground">
-                        {getActionVoteCount('next_round')} voto{getActionVoteCount('next_round') !== 1 ? 's' : ''}
+                        {t('voting.vote_count', getActionVoteCount('next_round'), getActionVoteCount('next_round') !== 1 ? 's' : '')}
                       </span>
                     )}
                   </span>
@@ -471,7 +473,7 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
                 >
                   <span className="flex items-center gap-2">
                     <Flag className="size-4" />
-                    Finalizar jogo
+                    {t('voting.option_end_game')}
                   </span>
                   <span className="flex items-center gap-2">
                     {myChoice?.type === 'end_game' && (
@@ -479,7 +481,7 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
                     )}
                     {votes.length > 0 && (
                       <span className="text-xs text-muted-foreground">
-                        {getActionVoteCount('end_game')} voto{getActionVoteCount('end_game') !== 1 ? 's' : ''}
+                        {t('voting.vote_count', getActionVoteCount('end_game'), getActionVoteCount('end_game') !== 1 ? 's' : '')}
                       </span>
                     )}
                   </span>
@@ -497,12 +499,12 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 size-4 animate-spin" />
-                    Enviando...
+                    {t('voting.button_sending')}
                   </>
                 ) : (
                   <>
                     <Check className="mr-2 size-4" />
-                    Confirmar Voto
+                    {t('voting.button_confirm')}
                   </>
                 )}
               </Button>
@@ -512,7 +514,7 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
               <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 text-center">
                 <p className="text-sm text-green-400 flex items-center justify-center gap-2">
                   <Check className="size-4" />
-                  Voto registrado!
+                  {t('voting.confirmed')}
                 </p>
               </div>
             )}
@@ -522,14 +524,14 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
               {pendingVoters.length > 0 ? (
                 <>
                   <p className="mb-1">
-                    Aguardando: {pendingVoters.map((p) => p.name).join(', ')}
+                    {t('voting.waiting_players', pendingVoters.map((p) => p.name).join(', '))}
                   </p>
                   <p>
-                    ({votes.length}/{totalActivePlayers} votos)
+                    {t('voting.progress', votes.length, totalActivePlayers)}
                   </p>
                 </>
               ) : (
-                <p>Todos votaram! Processando resultados...</p>
+                <p>{t('voting.all_voted')}</p>
               )}
             </div>
           </>

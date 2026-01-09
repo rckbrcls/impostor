@@ -3,10 +3,10 @@
 import { useRouter } from 'next/navigation'
 import { supabase, type Player, type Room } from '@/lib/supabase'
 import { getClientId } from '@/lib/game-utils'
-import { getRandomWord } from '@/lib/words'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Trophy, Home, RotateCcw, Skull, Users } from 'lucide-react'
+import { useLanguage } from '@/components/language-context'
 
 interface ResultsScreenProps {
   room: Room
@@ -15,6 +15,7 @@ interface ResultsScreenProps {
 
 export function ResultsScreen({ room, players }: ResultsScreenProps) {
   const router = useRouter()
+  const { t } = useLanguage()
 
   // Encontrar o impostor
   const impostor = players.find((p) => p.is_impostor)
@@ -27,9 +28,6 @@ export function ResultsScreen({ room, players }: ResultsScreenProps) {
 
   // O impostor venceu se ele ainda está ativo e restam apenas 2 jogadores ativos
   const impostorWon = impostor && !impostor.is_eliminated && activePlayers.length <= 2
-
-  // O impostor perdeu se foi eliminado
-  const impostorLost = impostor?.is_eliminated ?? false
 
   const goHome = () => {
     router.push('/')
@@ -76,23 +74,23 @@ export function ResultsScreen({ room, players }: ResultsScreenProps) {
           {impostorWon ? (
             <>
               <Skull className="text-red-500" />
-              O Impostor Venceu!
+              {t('results.impostor_won')}
             </>
           ) : (
             <>
               <Trophy className="text-yellow-500" />
-              Jogadores Venceram!
+              {t('results.players_won')}
             </>
           )}
         </CardTitle>
         <CardDescription>
-          {room.round} rodada{room.round !== 1 ? 's' : ''} jogada{room.round !== 1 ? 's' : ''}
+          {t('results.rounds_played', room.round, room.round !== 1 ? 's' : '')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Revelação da palavra */}
         <div className="bg-gradient-to-br from-primary/10 to-primary/20 rounded-xl p-6 text-center border-2 border-primary/30">
-          <p className="text-sm text-muted-foreground mb-2">A palavra era:</p>
+          <p className="text-sm text-muted-foreground mb-2">{t('results.word_was')}</p>
           <p className="text-3xl font-bold text-primary uppercase">
             {room.word}
           </p>
@@ -103,13 +101,13 @@ export function ResultsScreen({ room, players }: ResultsScreenProps) {
           ? 'bg-gradient-to-br from-red-500/20 to-rose-600/30 border-red-500/50'
           : 'bg-gradient-to-br from-green-500/20 to-emerald-600/30 border-green-500/50'
           }`}>
-          <p className="text-sm text-muted-foreground mb-1">O impostor era:</p>
+          <p className="text-sm text-muted-foreground mb-1">{t('results.impostor_was')}</p>
           <p className="text-2xl font-bold">
-            🕵️ {impostor?.name ?? 'Desconhecido'}
+            🕵️ {impostor?.name ?? t('results.unknown')}
           </p>
           {impostorWon && (
             <p className="text-sm text-red-400 mt-2">
-              Sobreviveu por {room.round} rodada{room.round !== 1 ? 's' : ''}!
+              {t('results.survived_rounds', room.round, room.round !== 1 ? 's' : '')}
             </p>
           )}
         </div>
@@ -119,7 +117,7 @@ export function ResultsScreen({ room, players }: ResultsScreenProps) {
           <div className="bg-muted/50 rounded-lg p-4">
             <p className="text-sm text-muted-foreground mb-2 flex items-center gap-2">
               <Users className="size-4" />
-              Eliminados durante o jogo:
+              {t('results.eliminated_title')}
             </p>
             <div className="flex flex-wrap gap-2">
               {eliminatedPlayers.map((player) => (
@@ -138,12 +136,12 @@ export function ResultsScreen({ room, players }: ResultsScreenProps) {
         <div className="flex gap-2 pt-4">
           <Button variant="outline" className="flex-1" onClick={goHome}>
             <Home className="mr-2" />
-            Início
+            {t('results.home')}
           </Button>
           {isHost && (
             <Button className="flex-1" onClick={playAgain}>
               <RotateCcw className="mr-2" />
-              Jogar Novamente
+              {t('results.play_again')}
             </Button>
           )}
         </div>
