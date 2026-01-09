@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { CreateRoomForm } from '@/components/game/create-room-form'
+import Image from 'next/image'
 import { JoinRoomForm } from '@/components/game/join-room-form'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -16,9 +17,19 @@ export default function Home() {
       <div className="w-full max-w-md space-y-8">
         {/* Header */}
         <div className="text-center space-y-2">
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent">
-            {t('home.title')}
-          </h1>
+          <div className="flex flex-col items-center justify-center mb-6">
+            <Image
+              src="/assets/impostor.png"
+              alt={t('home.title')}
+              width={200}
+              height={200}
+              priority
+              className="object-contain"
+            />
+            <h1 className="text-4xl font-bold font-fredoka text-center mt-2 bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent">
+              IMPOSTOR
+            </h1>
+          </div>
           <p className="text-muted-foreground">
             {t('home.subtitle')}
           </p>
