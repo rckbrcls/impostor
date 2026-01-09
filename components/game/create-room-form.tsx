@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { generateRoomCode, getClientId } from '@/lib/game-utils'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Copy, Check, Users } from 'lucide-react'
 import { useLanguage } from '@/components/language-context'
@@ -14,9 +16,11 @@ export function CreateRoomForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [roomCode, setRoomCode] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [hostName, setHostName] = useState('')
   const { t } = useLanguage()
 
   const createRoom = async () => {
+    if (!hostName.trim()) return
     setIsLoading(true)
     try {
       const code = generateRoomCode()
@@ -35,7 +39,7 @@ export function CreateRoomForm() {
       await supabase.from('players').insert({
         room_id: (await supabase.from('rooms').select('id').eq('code', code).single()).data?.id,
         client_id: hostId,
-        name: 'Host',
+        name: hostName.trim(),
         is_impostor: false,
         score: 0,
       })
@@ -93,8 +97,22 @@ export function CreateRoomForm() {
         <CardTitle className="text-2xl">{t('create_room.title')}</CardTitle>
         <CardDescription>{t('create_room.subtitle')}</CardDescription>
       </CardHeader>
-      <CardContent>
-        <Button className="w-full" size="lg" onClick={createRoom} disabled={isLoading}>
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="hostName">{t('create_room.label_name')}</Label>
+          <Input
+            id="hostName"
+            placeholder={t('create_room.placeholder_name')}
+            value={hostName}
+            onChange={(e) => setHostName(e.target.value)}
+          />
+        </div>
+        <Button
+          className="w-full"
+          size="lg"
+          onClick={createRoom}
+          disabled={isLoading || !hostName.trim()}
+        >
           {isLoading ? t('create_room.button_creating') : t('create_room.button_create')}
         </Button>
       </CardContent>

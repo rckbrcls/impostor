@@ -42,6 +42,8 @@ export const translations = {
     'create_room.button_create': '🎮 Criar Sala',
     'create_room.button_creating': 'Criando...',
     'create_room.button_enter': 'Entrar na Sala',
+    'create_room.label_name': 'Seu Nome',
+    'create_room.placeholder_name': 'Digite seu nome',
 
     // Join Room
     'join_room.title': 'Entrar em uma Sala',
@@ -142,6 +144,8 @@ export const translations = {
     'create_room.button_create': '🎮 Create Room',
     'create_room.button_creating': 'Creating...',
     'create_room.button_enter': 'Enter Room',
+    'create_room.label_name': 'Your Name',
+    'create_room.placeholder_name': 'Enter your name',
 
     // Join Room
     'join_room.title': 'Join a Room',
