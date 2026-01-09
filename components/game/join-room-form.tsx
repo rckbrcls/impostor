@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { LogIn } from 'lucide-react'
+import { useLanguage } from '@/components/language-context'
 
 interface JoinRoomFormProps {
   initialCode?: string
@@ -19,6 +20,7 @@ export function JoinRoomForm({ initialCode = '' }: JoinRoomFormProps) {
   const [name, setName] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const { t } = useLanguage()
 
   const joinRoom = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,12 +38,12 @@ export function JoinRoomForm({ initialCode = '' }: JoinRoomFormProps) {
         .single()
 
       if (roomError || !room) {
-        setError('Sala não encontrada')
+        setError(t('join_room.error_not_found'))
         return
       }
 
       if (room.status !== 'waiting') {
-        setError('Esta sala já está em jogo')
+        setError(t('join_room.error_started'))
         return
       }
 
@@ -75,7 +77,7 @@ export function JoinRoomForm({ initialCode = '' }: JoinRoomFormProps) {
       router.push(`/room/${code.toUpperCase()}`)
     } catch (err) {
       console.error('Erro ao entrar na sala:', err)
-      setError('Erro ao entrar na sala')
+      setError(t('join_room.error_generic'))
     } finally {
       setIsLoading(false)
     }
@@ -84,14 +86,14 @@ export function JoinRoomForm({ initialCode = '' }: JoinRoomFormProps) {
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="text-center">
-        <CardTitle className="text-2xl">Entrar em uma Sala</CardTitle>
-        <CardDescription>Digite o código da sala e seu nome</CardDescription>
+        <CardTitle className="text-2xl">{t('join_room.title')}</CardTitle>
+        <CardDescription>{t('join_room.subtitle')}</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={joinRoom} className="space-y-4">
           <div className="space-y-2">
             <Input
-              placeholder="Código da sala (ex: ABC123)"
+              placeholder={t('join_room.placeholder_code')}
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
               maxLength={6}
@@ -101,7 +103,7 @@ export function JoinRoomForm({ initialCode = '' }: JoinRoomFormProps) {
 
           <div className="space-y-2">
             <Input
-              placeholder="Seu nome"
+              placeholder={t('join_room.placeholder_name')}
               value={name}
               onChange={(e) => setName(e.target.value)}
               maxLength={20}
@@ -119,7 +121,7 @@ export function JoinRoomForm({ initialCode = '' }: JoinRoomFormProps) {
             disabled={isLoading || !code.trim() || !name.trim()}
           >
             <LogIn className="mr-2" />
-            {isLoading ? 'Entrando...' : 'Entrar na Sala'}
+            {isLoading ? t('join_room.button_joining') : t('join_room.button_join')}
           </Button>
         </form>
       </CardContent>

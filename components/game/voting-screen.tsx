@@ -4,7 +4,9 @@ import { useState, useEffect } from 'react'
 import { supabase, type Player, type Room, type Vote } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { SelectionGroup, SelectionItem } from '@/components/ui/selection-card'
 import { Check, User, Flag, Loader2, Play } from 'lucide-react'
+import { useLanguage } from '@/components/language-context'
 
 interface VotingScreenProps {
   room: Room
@@ -27,6 +29,7 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
   const [revealResult, setRevealResult] = useState(false)
   const [mostVotedPlayer, setMostVotedPlayer] = useState<{ player: Player | null; wasImpostor: boolean } | null>(null)
   const [decidedAction, setDecidedAction] = useState<'next_round' | 'end_game' | null>(null)
+  const { t } = useLanguage()
 
   const impostor = players.find((p) => p.is_impostor)
   // Jogadores ativos (não eliminados)
@@ -309,12 +312,12 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="text-center">
-        <CardTitle className="text-2xl">Rodada {room.round} - Votação</CardTitle>
+        <CardTitle className="text-2xl">{t('voting.title', room.round)}</CardTitle>
         <CardDescription>
           {revealResult ? (
-            'Resultado da votação'
+            t('voting.desc_reveal')
           ) : (
-            'Quem você acha que é o impostor?'
+            t('voting.desc_ask')
           )}
         </CardDescription>
       </CardHeader>
@@ -324,30 +327,30 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
           <div className="space-y-4">
             {/* Quem foi o mais votado */}
             {mostVotedPlayer?.player ? (
-              <div className={`rounded-xl p-6 text-center border-2 ${mostVotedPlayer.wasImpostor
-                ? 'bg-gradient-to-br from-green-500/20 to-emerald-600/30 border-green-500/50'
-                : 'bg-gradient-to-br from-orange-500/20 to-amber-600/30 border-orange-500/50'
+              <div className={`p-6 text-center border-2 border-black shadow-[4px_4px_0_0] dark:border-white dark:shadow-white ${mostVotedPlayer.wasImpostor
+                ? 'bg-green-500/20'
+                : 'bg-orange-500/20'
                 }`}>
-                <p className="text-sm text-muted-foreground mb-2">O mais votado foi:</p>
+                <p className="text-sm text-muted-foreground mb-2">{t('voting.most_voted_label')}</p>
                 <p className="text-3xl font-bold mb-2">
                   {mostVotedPlayer.player.name}
                 </p>
                 {mostVotedPlayer.wasImpostor ? (
-                  <p className="text-xl text-green-400 font-semibold">✅ ERA O IMPOSTOR! Vocês venceram!</p>
+                  <p className="text-xl text-green-400 font-semibold">{t('voting.result_impostor')}</p>
                 ) : (
-                  <p className="text-xl text-orange-400 font-semibold">🚫 Foi eliminado! Não era o impostor.</p>
+                  <p className="text-xl text-orange-400 font-semibold">{t('voting.result_innocent')}</p>
                 )}
               </div>
             ) : (
-              <div className="bg-muted/50 rounded-xl p-6 text-center border-2 border-muted">
-                <p className="text-muted-foreground">Ninguém foi votado como impostor</p>
+              <div className="p-6 text-center border-2 border-black shadow-[4px_4px_0_0] dark:border-white dark:shadow-white">
+                <p className="text-muted-foreground">{t('voting.no_votes')}</p>
               </div>
             )}
 
             {isProcessing ? (
               <div className="flex items-center justify-center gap-2 text-muted-foreground">
                 <Loader2 className="size-4 animate-spin" />
-                <span>Processando votos...</span>
+                <span>{t('voting.processing')}</span>
               </div>
             ) : decidedAction && isHost ? (
               <div className="flex flex-col gap-3">
@@ -357,7 +360,7 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
                     className="w-full bg-green-600 hover:bg-green-700"
                   >
                     <Play className="mr-2 size-4" />
-                    Ir para Próxima Rodada
+                    {t('voting.next_round')}
                   </Button>
                 ) : (
                   <Button
@@ -366,14 +369,14 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
                     className="w-full"
                   >
                     <Flag className="mr-2 size-4" />
-                    Finalizar Jogo
+                    {t('voting.end_game')}
                   </Button>
                 )}
               </div>
             ) : decidedAction && !isHost ? (
               <div className="flex items-center justify-center gap-2 text-muted-foreground">
                 <Loader2 className="size-4 animate-spin" />
-                <span>Aguardando o host continuar...</span>
+                <span>{t('voting.waiting_host_continue')}</span>
               </div>
             ) : null}
           </div>
@@ -384,107 +387,94 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
           <>
             <div className="space-y-3">
               <p className="text-sm font-medium text-center">
-                Escolha UMA opção:
+                {t('voting.choose_option')}
               </p>
 
               {/* Seção: Votar em jogador como impostor */}
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground flex items-center gap-2">
-                  🕵️ Votar em quem você acha que é o impostor:
+                  {t('voting.vote_impostor_label')}
                 </p>
-                <div className="grid gap-2">
+                <SelectionGroup>
                   {votablePlayers.map((player) => (
-                    <button
+                    <SelectionItem
                       key={player.id}
-                      onClick={() => !hasVoted && setMyChoice({ type: 'player', playerId: player.id })}
+                      checked={isPlayerSelected(player.id)}
+                      onChange={() => !hasVoted && setMyChoice({ type: 'player', playerId: player.id })}
                       disabled={hasVoted}
-                      className={`flex items-center justify-between px-4 py-3 rounded-lg border-2 transition-all ${isPlayerSelected(player.id)
-                        ? 'border-primary bg-primary/10'
-                        : 'border-muted bg-muted/50 hover:border-muted-foreground/30'
-                        } ${hasVoted ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
-                    >
-                      <span className="flex items-center gap-2">
-                        <User className="size-4" />
-                        {player.name}
-                        {player.id === currentPlayer?.id && (
-                          <span className="text-xs text-muted-foreground">(você)</span>
-                        )}
-                      </span>
-                      <span className="flex items-center gap-2">
-                        {isPlayerSelected(player.id) && (
-                          <Check className="size-4 text-primary" />
-                        )}
-                        {votes.length > 0 && (
-                          <span className="text-xs text-muted-foreground">
-                            {getImpostorVoteCount(player.id)} voto{getImpostorVoteCount(player.id) !== 1 ? 's' : ''}
+                      className="has-[:checked]:bg-primary/20 has-[:checked]:border-primary/50 dark:has-[:checked]:bg-primary/40"
+                      title={
+                        <span className="flex items-center gap-2">
+                          <User className="size-4" />
+                          {player.name}
+                          {player.id === currentPlayer?.id && (
+                            <span className="text-xs text-muted-foreground font-normal">({t('common.you')})</span>
+                          )}
+                        </span>
+                      }
+                      description={
+                        votes.length > 0 ? (
+                          <span className="flex items-center gap-1 text-xs">
+                            {t('voting.vote_count', getImpostorVoteCount(player.id), getImpostorVoteCount(player.id) !== 1 ? 's' : '')}
                           </span>
-                        )}
-                      </span>
-                    </button>
+                        ) : undefined
+                      }
+                    />
                   ))}
-                </div>
+                </SelectionGroup>
               </div>
 
               {/* Divisor */}
               <div className="relative py-2">
                 <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
+                  <span className="w-full border-t border-black dark:border-white" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-card px-2 text-muted-foreground">ou</span>
+                  <span className="bg-white dark:bg-black px-2 text-muted-foreground border-2 border-black dark:border-white shadow-[2px_2px_0_0]">{t('common.or')}</span>
                 </div>
               </div>
 
               {/* Seção: Ações alternativas */}
-              <div className="grid gap-2">
-                <button
-                  onClick={() => !hasVoted && setMyChoice({ type: 'next_round' })}
+              <SelectionGroup>
+                <SelectionItem
+                  checked={myChoice?.type === 'next_round'}
+                  onChange={() => !hasVoted && setMyChoice({ type: 'next_round' })}
                   disabled={hasVoted}
-                  className={`flex items-center justify-between px-4 py-3 rounded-lg border-2 transition-all ${myChoice?.type === 'next_round'
-                    ? 'border-green-500 bg-green-500/10'
-                    : 'border-muted bg-muted/50 hover:border-muted-foreground/30'
-                    } ${hasVoted ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
-                >
-                  <span className="flex items-center gap-2">
-                    <Play className="size-4" />
-                    Próxima rodada
-                  </span>
-                  <span className="flex items-center gap-2">
-                    {myChoice?.type === 'next_round' && (
-                      <Check className="size-4 text-green-500" />
-                    )}
-                    {votes.length > 0 && (
-                      <span className="text-xs text-muted-foreground">
-                        {getActionVoteCount('next_round')} voto{getActionVoteCount('next_round') !== 1 ? 's' : ''}
+                  className="has-[:checked]:bg-green-500/20 has-[:checked]:border-green-500/50 dark:has-[:checked]:bg-green-900/40 [&_input]:checked:bg-green-600 [&_input]:checked:border-green-600 [&_input]:checked:shadow-green-900 [&_input]:focus:ring-green-500"
+                  title={
+                    <span className="flex items-center gap-2">
+                      <Play className="size-4" />
+                      {t('voting.option_next_round')}
+                    </span>
+                  }
+                  description={
+                    votes.length > 0 ? (
+                      <span className="text-xs">
+                        {t('voting.vote_count', getActionVoteCount('next_round'), getActionVoteCount('next_round') !== 1 ? 's' : '')}
                       </span>
-                    )}
-                  </span>
-                </button>
-
-                <button
-                  onClick={() => !hasVoted && setMyChoice({ type: 'end_game' })}
+                    ) : undefined
+                  }
+                />
+                <SelectionItem
+                  checked={myChoice?.type === 'end_game'}
+                  onChange={() => !hasVoted && setMyChoice({ type: 'end_game' })}
                   disabled={hasVoted}
-                  className={`flex items-center justify-between px-4 py-3 rounded-lg border-2 transition-all ${myChoice?.type === 'end_game'
-                    ? 'border-red-500 bg-red-500/10'
-                    : 'border-muted bg-muted/50 hover:border-muted-foreground/30'
-                    } ${hasVoted ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
-                >
-                  <span className="flex items-center gap-2">
-                    <Flag className="size-4" />
-                    Finalizar jogo
-                  </span>
-                  <span className="flex items-center gap-2">
-                    {myChoice?.type === 'end_game' && (
-                      <Check className="size-4 text-red-500" />
-                    )}
-                    {votes.length > 0 && (
-                      <span className="text-xs text-muted-foreground">
-                        {getActionVoteCount('end_game')} voto{getActionVoteCount('end_game') !== 1 ? 's' : ''}
+                  className="has-[:checked]:bg-red-500/20 has-[:checked]:border-red-500/50 dark:has-[:checked]:bg-red-900/40 [&_input]:checked:bg-red-600 [&_input]:checked:border-red-600 [&_input]:checked:shadow-red-900 [&_input]:focus:ring-red-500"
+                  title={
+                    <span className="flex items-center gap-2">
+                      <Flag className="size-4" />
+                      {t('voting.option_end_game')}
+                    </span>
+                  }
+                  description={
+                    votes.length > 0 ? (
+                      <span className="text-xs">
+                        {t('voting.vote_count', getActionVoteCount('end_game'), getActionVoteCount('end_game') !== 1 ? 's' : '')}
                       </span>
-                    )}
-                  </span>
-                </button>
-              </div>
+                    ) : undefined
+                  }
+                />
+              </SelectionGroup>
             </div>
 
             {/* Botão de confirmar */}
@@ -497,22 +487,22 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 size-4 animate-spin" />
-                    Enviando...
+                    {t('voting.button_sending')}
                   </>
                 ) : (
                   <>
                     <Check className="mr-2 size-4" />
-                    Confirmar Voto
+                    {t('voting.button_confirm')}
                   </>
                 )}
               </Button>
             )}
 
             {hasVoted && (
-              <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 text-center">
-                <p className="text-sm text-green-400 flex items-center justify-center gap-2">
+              <div className="bg-green-500/10 border-2 border-black shadow-[2px_2px_0_0] dark:border-white dark:shadow-white p-3 text-center">
+                <p className="text-sm text-green-600 dark:text-green-400 flex items-center justify-center gap-2 font-semibold">
                   <Check className="size-4" />
-                  Voto registrado!
+                  {t('voting.confirmed')}
                 </p>
               </div>
             )}
@@ -522,14 +512,14 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
               {pendingVoters.length > 0 ? (
                 <>
                   <p className="mb-1">
-                    Aguardando: {pendingVoters.map((p) => p.name).join(', ')}
+                    {t('voting.waiting_players', pendingVoters.map((p) => p.name).join(', '))}
                   </p>
                   <p>
-                    ({votes.length}/{totalActivePlayers} votos)
+                    {t('voting.progress', votes.length, totalActivePlayers)}
                   </p>
                 </>
               ) : (
-                <p>Todos votaram! Processando resultados...</p>
+                <p>{t('voting.all_voted')}</p>
               )}
             </div>
           </>

@@ -2,23 +2,33 @@
 
 import { useState } from 'react'
 import { CreateRoomForm } from '@/components/game/create-room-form'
+import Image from 'next/image'
 import { JoinRoomForm } from '@/components/game/join-room-form'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import { useLanguage } from '@/components/language-context'
 
 export default function Home() {
   const [mode, setMode] = useState<'create' | 'join' | null>(null)
+  const { t } = useLanguage()
 
   return (
-    <main className="min-h-screen p-4 flex items-center justify-center bg-gradient-to-br from-background via-background to-muted">
+    <main className="min-h-full p-4 flex items-center justify-center bg-gradient-to-br from-background via-background to-muted">
       <div className="w-full max-w-md space-y-8">
         {/* Header */}
         <div className="text-center space-y-2">
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent">
-            🕵️ Impostor
-          </h1>
+          <div className="flex flex-col items-center justify-center mb-6">
+            <Image
+              src="/assets/Group.png"
+              alt={t('home.title')}
+              width={200}
+              height={200}
+              priority
+              className="object-contain"
+            />
+          </div>
           <p className="text-muted-foreground">
-            Descubra quem é o impostor entre seus amigos!
+            {t('home.subtitle')}
           </p>
         </div>
 
@@ -30,12 +40,12 @@ export default function Home() {
               size="lg"
               onClick={() => setMode('create')}
             >
-              🎮 Criar Nova Sala
+              {t('home.create_room')}
             </Button>
 
             <div className="flex items-center gap-4">
               <Separator className="flex-1" />
-              <span className="text-muted-foreground text-sm">ou</span>
+              <span className="text-muted-foreground text-sm">{t('common.or')}</span>
               <Separator className="flex-1" />
             </div>
 
@@ -45,7 +55,7 @@ export default function Home() {
               variant="outline"
               onClick={() => setMode('join')}
             >
-              🚪 Entrar em uma Sala
+              {t('home.join_room')}
             </Button>
           </div>
         )}
@@ -59,11 +69,12 @@ export default function Home() {
               className="w-full"
               onClick={() => setMode(null)}
             >
-              ← Voltar
+              {t('common.back')}
             </Button>
           </div>
         )}
 
+        {/* Formulários */}
         {mode === 'join' && (
           <div className="space-y-4">
             <JoinRoomForm />
@@ -72,14 +83,14 @@ export default function Home() {
               className="w-full"
               onClick={() => setMode(null)}
             >
-              ← Voltar
+              {t('common.back')}
             </Button>
           </div>
         )}
 
         {/* Footer */}
         <p className="text-center text-xs text-muted-foreground">
-          Jogue com 3+ amigos • Cada rodada, alguém é o impostor!
+          {t('home.footer')}
         </p>
       </div>
     </main>

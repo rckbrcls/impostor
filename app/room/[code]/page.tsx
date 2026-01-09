@@ -151,7 +151,7 @@ export default function RoomPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-full flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
           <p className="text-muted-foreground">Carregando sala...</p>
@@ -165,7 +165,7 @@ export default function RoomPage() {
   }
 
   return (
-    <main className="min-h-screen p-4 flex items-center justify-center bg-gradient-to-br from-background to-muted">
+    <main className="min-h-full p-4 flex items-center justify-center bg-gradient-to-br from-background to-muted">
       {phase === 'joining' && <JoinRoomForm initialCode={code} />}
 
       {phase === 'lobby' && (
