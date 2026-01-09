@@ -19,16 +19,13 @@ export default function Home() {
         <div className="text-center space-y-2">
           <div className="flex flex-col items-center justify-center mb-6">
             <Image
-              src="/assets/impostor.png"
+              src="/assets/Group.png"
               alt={t('home.title')}
               width={200}
               height={200}
               priority
               className="object-contain"
             />
-            <h1 className="text-4xl font-bold font-fredoka text-center mt-2 bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent">
-              IMPOSTOR
-            </h1>
           </div>
           <p className="text-muted-foreground">
             {t('home.subtitle')}
