@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { supabase, type Player, type Room, type Vote } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { SelectionGroup, SelectionItem } from '@/components/ui/selection-card'
 import { Check, User, Flag, Loader2, Play } from 'lucide-react'
 import { useLanguage } from '@/components/language-context'
 
@@ -394,99 +395,84 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
                 <p className="text-xs text-muted-foreground flex items-center gap-2">
                   {t('voting.vote_impostor_label')}
                 </p>
-                <div className="grid gap-2">
+                <SelectionGroup>
                   {votablePlayers.map((player) => (
-                    <button
+                    <SelectionItem
                       key={player.id}
-                      onClick={() => !hasVoted && setMyChoice({ type: 'player', playerId: player.id })}
+                      checked={isPlayerSelected(player.id)}
+                      onChange={() => !hasVoted && setMyChoice({ type: 'player', playerId: player.id })}
                       disabled={hasVoted}
-                      className={`flex items-center justify-between px-4 py-3 rounded-lg border-2 transition-all ${isPlayerSelected(player.id)
-                        ? 'border-primary bg-primary/10'
-                        : 'border-muted bg-muted/50 hover:border-muted-foreground/30'
-                        } ${hasVoted ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
-                    >
-                      <span className="flex items-center gap-2">
-                        <User className="size-4" />
-                        {player.name}
-                        {player.id === currentPlayer?.id && (
-                          <span className="text-xs text-muted-foreground">{t('common.you')}</span>
-                        )}
-                      </span>
-                      <span className="flex items-center gap-2">
-                        {isPlayerSelected(player.id) && (
-                          <Check className="size-4 text-primary" />
-                        )}
-                        {votes.length > 0 && (
-                          <span className="text-xs text-muted-foreground">
+                      title={
+                        <span className="flex items-center gap-2">
+                          <User className="size-4" />
+                          {player.name}
+                          {player.id === currentPlayer?.id && (
+                            <span className="text-xs text-muted-foreground font-normal">({t('common.you')})</span>
+                          )}
+                        </span>
+                      }
+                      description={
+                        votes.length > 0 ? (
+                          <span className="flex items-center gap-1 text-xs">
                             {t('voting.vote_count', getImpostorVoteCount(player.id), getImpostorVoteCount(player.id) !== 1 ? 's' : '')}
                           </span>
-                        )}
-                      </span>
-                    </button>
+                        ) : undefined
+                      }
+                    />
                   ))}
-                </div>
+                </SelectionGroup>
               </div>
 
               {/* Divisor */}
               <div className="relative py-2">
                 <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
+                  <span className="w-full border-t border-black dark:border-white" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-card px-2 text-muted-foreground">{t('common.or')}</span>
+                  <span className="bg-white dark:bg-black px-2 text-muted-foreground border-2 border-black dark:border-white shadow-[2px_2px_0_0]">{t('common.or')}</span>
                 </div>
               </div>
 
               {/* Seção: Ações alternativas */}
-              <div className="grid gap-2">
-                <button
-                  onClick={() => !hasVoted && setMyChoice({ type: 'next_round' })}
+              {/* Seção: Ações alternativas */}
+              <SelectionGroup>
+                <SelectionItem
+                  checked={myChoice?.type === 'next_round'}
+                  onChange={() => !hasVoted && setMyChoice({ type: 'next_round' })}
                   disabled={hasVoted}
-                  className={`flex items-center justify-between px-4 py-3 rounded-lg border-2 transition-all ${myChoice?.type === 'next_round'
-                    ? 'border-green-500 bg-green-500/10'
-                    : 'border-muted bg-muted/50 hover:border-muted-foreground/30'
-                    } ${hasVoted ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
-                >
-                  <span className="flex items-center gap-2">
-                    <Play className="size-4" />
-                    {t('voting.option_next_round')}
-                  </span>
-                  <span className="flex items-center gap-2">
-                    {myChoice?.type === 'next_round' && (
-                      <Check className="size-4 text-green-500" />
-                    )}
-                    {votes.length > 0 && (
-                      <span className="text-xs text-muted-foreground">
+                  title={
+                    <span className="flex items-center gap-2">
+                      <Play className="size-4" />
+                      {t('voting.option_next_round')}
+                    </span>
+                  }
+                  description={
+                    votes.length > 0 ? (
+                      <span className="text-xs">
                         {t('voting.vote_count', getActionVoteCount('next_round'), getActionVoteCount('next_round') !== 1 ? 's' : '')}
                       </span>
-                    )}
-                  </span>
-                </button>
-
-                <button
-                  onClick={() => !hasVoted && setMyChoice({ type: 'end_game' })}
+                    ) : undefined
+                  }
+                />
+                <SelectionItem
+                  checked={myChoice?.type === 'end_game'}
+                  onChange={() => !hasVoted && setMyChoice({ type: 'end_game' })}
                   disabled={hasVoted}
-                  className={`flex items-center justify-between px-4 py-3 rounded-lg border-2 transition-all ${myChoice?.type === 'end_game'
-                    ? 'border-red-500 bg-red-500/10'
-                    : 'border-muted bg-muted/50 hover:border-muted-foreground/30'
-                    } ${hasVoted ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
-                >
-                  <span className="flex items-center gap-2">
-                    <Flag className="size-4" />
-                    {t('voting.option_end_game')}
-                  </span>
-                  <span className="flex items-center gap-2">
-                    {myChoice?.type === 'end_game' && (
-                      <Check className="size-4 text-red-500" />
-                    )}
-                    {votes.length > 0 && (
-                      <span className="text-xs text-muted-foreground">
+                  title={
+                    <span className="flex items-center gap-2">
+                      <Flag className="size-4" />
+                      {t('voting.option_end_game')}
+                    </span>
+                  }
+                  description={
+                    votes.length > 0 ? (
+                      <span className="text-xs">
                         {t('voting.vote_count', getActionVoteCount('end_game'), getActionVoteCount('end_game') !== 1 ? 's' : '')}
                       </span>
-                    )}
-                  </span>
-                </button>
-              </div>
+                    ) : undefined
+                  }
+                />
+              </SelectionGroup>
             </div>
 
             {/* Botão de confirmar */}
