@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { supabase, type Player, type Room } from '@/lib/supabase'
+import { updateRoomStatus, type Player, type Room } from '@/lib/supabase'
 import { getClientId } from '@/lib/game-utils'
 import { Vote } from 'lucide-react'
 import { useLanguage } from '@/components/language-context'
@@ -25,10 +25,7 @@ export function GameScreen({ room, players, currentPlayer, isHost, onStartVoting
   const handleStartVoting = async () => {
     setIsStartingVote(true)
     try {
-      await supabase
-        .from('rooms')
-        .update({ status: 'voting' })
-        .eq('id', room.id)
+      await updateRoomStatus(room.id, 'voting')
       onStartVoting()
     } catch (error) {
       console.error('Erro ao iniciar votação:', error)

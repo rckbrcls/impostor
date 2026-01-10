@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { getRoomByCode, getPlayerByRoomAndClient, addPlayer } from '@/lib/supabase'
 import { getClientId } from '@/lib/game-utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -31,11 +31,7 @@ export function JoinRoomForm({ initialCode = '' }: JoinRoomFormProps) {
 
     try {
       // Buscar sala pelo código
-      const { data: room, error: roomError } = await supabase
-        .from('rooms')
-        .select('id, status')
-        .eq('code', code.toUpperCase())
-        .single()
+      const { data: room, error: roomError } = await getRoomByCode(code)
 
       if (roomError || !room) {
         setError(t('join_room.error_not_found'))
@@ -50,12 +46,7 @@ export function JoinRoomForm({ initialCode = '' }: JoinRoomFormProps) {
       const clientId = getClientId()
 
       // Verificar se já está na sala
-      const { data: existingPlayer } = await supabase
-        .from('players')
-        .select('id')
-        .eq('room_id', room.id)
-        .eq('client_id', clientId)
-        .single()
+      const { data: existingPlayer } = await getPlayerByRoomAndClient(room.id, clientId)
 
       if (existingPlayer) {
         // Já está na sala, apenas redireciona
@@ -64,13 +55,7 @@ export function JoinRoomForm({ initialCode = '' }: JoinRoomFormProps) {
       }
 
       // Entrar na sala
-      const { error: playerError } = await supabase.from('players').insert({
-        room_id: room.id,
-        client_id: clientId,
-        name: name.trim(),
-        is_impostor: false,
-        score: 0,
-      })
+      const { error: playerError } = await addPlayer(room.id, clientId, name.trim())
 
       if (playerError) throw playerError
 

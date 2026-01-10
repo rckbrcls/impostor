@@ -2,7 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { supabase, type Player, type Room } from '@/lib/supabase'
+import {
+  getRoomByCode,
+  getPlayersByRoomId,
+  subscribeToRoom,
+  subscribeToPlayers,
+  type Player,
+  type Room,
+} from '@/lib/supabase'
 import { getClientId } from '@/lib/game-utils'
 import { Lobby } from '@/components/game/lobby'
 import { GameScreen } from '@/components/game/game-screen'
@@ -29,11 +36,7 @@ export default function RoomPage() {
   // Carregar dados iniciais
   useEffect(() => {
     const loadRoom = async () => {
-      const { data: roomData, error: roomError } = await supabase
-        .from('rooms')
-        .select('*')
-        .eq('code', code.toUpperCase())
-        .single()
+      const { data: roomData, error: roomError } = await getRoomByCode(code)
 
       if (roomError || !roomData) {
         router.push('/')
@@ -42,11 +45,7 @@ export default function RoomPage() {
 
       setRoom(roomData)
 
-      const { data: playersData } = await supabase
-        .from('players')
-        .select('*')
-        .eq('room_id', roomData.id)
-        .order('joined_at', { ascending: true })
+      const { data: playersData } = await getPlayersByRoomId(roomData.id)
 
       setPlayers(playersData || [])
 
@@ -77,76 +76,43 @@ export default function RoomPage() {
   useEffect(() => {
     if (!room?.id) return
 
-    const roomChannel = supabase
-      .channel(`room-${room.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'rooms',
-          filter: `id=eq.${room.id}`,
-        },
-        (payload) => {
-          const newRoom = payload.new as Room
-          setRoom(newRoom)
+    const unsubscribe = subscribeToRoom(room.id, (newRoom) => {
+      setRoom(newRoom)
 
-          if (newRoom.status === 'ended') {
-            setPhase('ended')
-          } else if (newRoom.status === 'voting') {
-            setPhase('voting')
-          } else if (newRoom.status === 'playing') {
-            setPhase('playing')
-          } else if (newRoom.status === 'waiting') {
-            setPhase('lobby')
-          }
-        }
-      )
-      .subscribe()
+      if (newRoom.status === 'ended') {
+        setPhase('ended')
+      } else if (newRoom.status === 'voting') {
+        setPhase('voting')
+      } else if (newRoom.status === 'playing') {
+        setPhase('playing')
+      } else if (newRoom.status === 'waiting') {
+        setPhase('lobby')
+      }
+    })
 
-    return () => {
-      supabase.removeChannel(roomChannel)
-    }
+    return unsubscribe
   }, [room?.id])
 
   // Realtime: escutar mudanças nos jogadores
   useEffect(() => {
     if (!room?.id) return
 
-    const playersChannel = supabase
-      .channel(`players-${room.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'players',
-          filter: `room_id=eq.${room.id}`,
-        },
-        async () => {
-          // Recarregar lista de jogadores
-          const { data: playersData } = await supabase
-            .from('players')
-            .select('*')
-            .eq('room_id', room.id)
-            .order('joined_at', { ascending: true })
+    const unsubscribe = subscribeToPlayers(room.id, async () => {
+      // Recarregar lista de jogadores
+      const { data: playersData } = await getPlayersByRoomId(room.id)
 
-          setPlayers(playersData || [])
+      setPlayers(playersData || [])
 
-          // Atualizar jogador atual
-          const player = playersData?.find((p) => p.client_id === clientId)
-          setCurrentPlayer(player || null)
+      // Atualizar jogador atual
+      const player = playersData?.find((p) => p.client_id === clientId)
+      setCurrentPlayer(player || null)
 
-          if (player && phase === 'joining') {
-            setPhase('lobby')
-          }
-        }
-      )
-      .subscribe()
+      if (player && phase === 'joining') {
+        setPhase('lobby')
+      }
+    })
 
-    return () => {
-      supabase.removeChannel(playersChannel)
-    }
+    return unsubscribe
   }, [room?.id, clientId, phase])
 
   if (isLoading) {

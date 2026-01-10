@@ -1,7 +1,17 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { supabase, type Player, type Room, type Vote } from '@/lib/supabase'
+import {
+  getVotesByRoomAndRound,
+  upsertVote,
+  updateRoomEnded,
+  updateRoomForNextRound,
+  eliminatePlayer,
+  subscribeToVotes,
+  type Player,
+  type Room,
+  type Vote,
+} from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { SelectionGroup, SelectionItem } from '@/components/ui/selection-card'
@@ -44,11 +54,7 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
   // Carregar votos existentes
   useEffect(() => {
     const loadVotes = async () => {
-      const { data } = await supabase
-        .from('votes')
-        .select('*')
-        .eq('room_id', room.id)
-        .eq('round', room.round)
+      const { data } = await getVotesByRoomAndRound(room.id, room.round)
 
       if (data) {
         setVotes(data)
@@ -75,46 +81,21 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
   useEffect(() => {
     // Carregar votos iniciais
     const loadVotes = async () => {
-      const { data } = await supabase
-        .from('votes')
-        .select('*')
-        .eq('room_id', room.id)
-        .eq('round', room.round)
+      const { data } = await getVotesByRoomAndRound(room.id, room.round)
       console.log('[Voting] Loaded votes:', data?.length)
       setVotes(data || [])
     }
     loadVotes()
 
-    const channel = supabase
-      .channel(`votes-${room.id}-${room.round}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'votes',
-          filter: `room_id=eq.${room.id}`,
-        },
-        async (payload) => {
-          console.log('[Voting] Realtime event:', payload.eventType)
-          // Recarregar votos
-          const { data } = await supabase
-            .from('votes')
-            .select('*')
-            .eq('room_id', room.id)
-            .eq('round', room.round)
+    const unsubscribe = subscribeToVotes(room.id, room.round, async () => {
+      console.log('[Voting] Realtime event received')
+      // Recarregar votos
+      const { data } = await getVotesByRoomAndRound(room.id, room.round)
+      console.log('[Voting] Votes after realtime:', data?.length)
+      setVotes(data || [])
+    })
 
-          console.log('[Voting] Votes after realtime:', data?.length)
-          setVotes(data || [])
-        }
-      )
-      .subscribe((status) => {
-        console.log('[Voting] Channel status:', status)
-      })
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
+    return unsubscribe
   }, [room.id, room.round])
 
   // Processar resultados quando todos jogadores ATIVOS votarem (apenas o host processa para evitar race conditions)
@@ -159,18 +140,7 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
         actionVote = 'end_game'
       }
 
-      await supabase.from('votes').upsert(
-        {
-          room_id: room.id,
-          round: room.round,
-          voter_id: currentPlayer.id,
-          impostor_vote: impostorVote,
-          action_vote: actionVote,
-        },
-        {
-          onConflict: 'room_id,round,voter_id',
-        }
-      )
+      await upsertVote(room.id, room.round, currentPlayer.id, impostorVote, actionVote)
       setHasVoted(true)
     } catch (error) {
       console.error('Erro ao votar:', error)
@@ -243,18 +213,12 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
     try {
       // Se alguém foi votado e não era o impostor, eliminar
       if (mostVotedPlayer?.player && !mostVotedPlayer.wasImpostor) {
-        await supabase
-          .from('players')
-          .update({ is_eliminated: true })
-          .eq('id', mostVotedPlayer.player.id)
+        await eliminatePlayer(mostVotedPlayer.player.id)
       }
 
       // Se alguém foi votado E era o impostor, o impostor perdeu!
       if (mostVotedPlayer?.player && mostVotedPlayer.wasImpostor) {
-        await supabase
-          .from('rooms')
-          .update({ status: 'ended' })
-          .eq('id', room.id)
+        await updateRoomEnded(room.id)
         onEndGame()
         return
       }
@@ -266,22 +230,13 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
 
       // Se restar apenas 2 jogadores (impostor + 1), o impostor vence!
       if (remainingActive <= 2) {
-        await supabase
-          .from('rooms')
-          .update({ status: 'ended' })
-          .eq('id', room.id)
+        await updateRoomEnded(room.id)
         onEndGame()
         return
       }
 
       // Atualizar sala com nova rodada (mesma palavra, mesmo impostor)
-      await supabase
-        .from('rooms')
-        .update({
-          status: 'playing',
-          round: room.round + 1,
-        })
-        .eq('id', room.id)
+      await updateRoomForNextRound(room.id, room.round + 1)
 
       onNextRound()
     } catch (error) {
@@ -291,11 +246,7 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
 
   const endGame = async () => {
     try {
-      await supabase
-        .from('rooms')
-        .update({ status: 'ended' })
-        .eq('id', room.id)
-
+      await updateRoomEnded(room.id)
       onEndGame()
     } catch (error) {
       console.error('Erro ao finalizar jogo:', error)

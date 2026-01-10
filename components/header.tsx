@@ -61,7 +61,7 @@ export function Header() {
       </div>
 
       {/* Desktop View: Full Header */}
-      <header className="hidden sm:flex items-center justify-between border-b-2 border-black dark:border-white bg-white p-4 dark:bg-zinc-900 shadow-sm relative z-40">
+      <header className="hidden sm:flex items-center justify-between border-b-2 border-black dark:border-white bg-white p-4 dark:bg-zinc-950 shadow-sm relative z-40">
         <Link passHref href="/">
           <Button
             variant="outline"

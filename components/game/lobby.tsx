@@ -1,7 +1,14 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { supabase, type Player, type Room } from '@/lib/supabase'
+import {
+  deleteVotesByRoomId,
+  resetPlayersForNewRound,
+  updatePlayerAsImpostor,
+  updateRoomForGameStart,
+  type Player,
+  type Room,
+} from '@/lib/supabase'
 import { getClientId } from '@/lib/game-utils'
 import { getRandomWord } from '@/lib/words'
 import { Button } from '@/components/ui/button'
@@ -34,21 +41,18 @@ export function Lobby({ room, players, onGameStart }: LobbyProps) {
 
       try {
         console.log('[Lobby] Cleaning votes for player:', myPlayer.name)
-        const { count, error } = await supabase
-          .from('votes')
-          .delete()
-          .eq('room_id', room.id)
-          .eq('voter_id', myPlayer.id)
-
-        if (error) throw error
-        console.log('[Lobby] Cleanup success, deleted rows:', count)
+        // Note: We're cleaning all votes for this room as a host cleanup
+        if (isHost) {
+          await deleteVotesByRoomId(room.id)
+        }
+        console.log('[Lobby] Cleanup success')
       } catch (err) {
         console.error('[Lobby] Error cleaning votes:', err)
       }
     }
 
     cleanVotes()
-  }, [room.id, players, clientId])
+  }, [room.id, players, clientId, isHost])
 
   const copyLink = async () => {
     const link = `${window.location.origin}/room/${room.code}`
@@ -64,36 +68,20 @@ export function Lobby({ room, players, onGameStart }: LobbyProps) {
     try {
       // Force cleanup: Host tenta limpar tudo antes de começar
       console.log('[Lobby] Host starting game, force cleaning all votes...')
-      await supabase
-        .from('votes')
-        .delete()
-        .eq('room_id', room.id)
+      await deleteVotesByRoomId(room.id)
 
       // Sortear impostor
       const impostorIndex = Math.floor(Math.random() * players.length)
       const impostorId = players[impostorIndex].id
 
       // Resetar todos para não-impostor e não eliminado
-      await supabase
-        .from('players')
-        .update({ is_impostor: false, is_eliminated: false })
-        .eq('room_id', room.id)
+      await resetPlayersForNewRound(room.id)
 
       // Marcar o impostor
-      await supabase
-        .from('players')
-        .update({ is_impostor: true })
-        .eq('id', impostorId)
+      await updatePlayerAsImpostor(impostorId)
 
       // Atualizar sala
-      await supabase
-        .from('rooms')
-        .update({
-          status: 'playing',
-          round: room.round + 1,
-          word: getRandomWord(),
-        })
-        .eq('id', room.id)
+      await updateRoomForGameStart(room.id, room.round + 1, getRandomWord())
 
       onGameStart()
     } catch (error) {

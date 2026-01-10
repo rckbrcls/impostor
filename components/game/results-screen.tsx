@@ -1,7 +1,13 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { supabase, type Player, type Room } from '@/lib/supabase'
+import {
+  deleteVotesByRoomId,
+  resetPlayersForNewGame,
+  resetRoomToWaiting,
+  type Player,
+  type Room,
+} from '@/lib/supabase'
 import { getClientId } from '@/lib/game-utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -41,27 +47,15 @@ export function ResultsScreen({ room, players }: ResultsScreenProps) {
 
     try {
       // 0. Proactive Cleanup: Tentar limpar votos aqui também
-      await supabase
-        .from('votes')
-        .delete()
-        .eq('room_id', room.id)
+      await deleteVotesByRoomId(room.id)
 
       // 1. Resetar status de todos os jogadores (pontuação, impostor, etc)
-      await supabase
-        .from('players')
-        .update({ score: 0, is_impostor: false, is_eliminated: false })
-        .eq('room_id', room.id)
+      await resetPlayersForNewGame(room.id)
 
       // 2. Voltar sala para 'waiting' (Lobby)
       // O Lobby vai lidar com a limpeza de votos de cada jogador (best effort)
       // E o jogo continuará incrementando o round (Round 1 -> 2 -> 3...) para evitar colisão de votos
-      await supabase
-        .from('rooms')
-        .update({
-          status: 'waiting',
-          word: null
-        })
-        .eq('id', room.id)
+      await resetRoomToWaiting(room.id)
     } catch (error) {
       console.error('Erro ao reiniciar jogo:', error)
     }
