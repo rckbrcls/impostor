@@ -1,18 +1,17 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import {
-  deleteVotesByRoomId,
-  resetPlayersForNewGame,
-  resetRoomToWaiting,
-  type Player,
-  type Room,
-} from '@/lib/supabase'
+import { type Player, type Room } from '@/lib/supabase'
 import { getClientId } from '@/lib/game-utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Trophy, Home, RotateCcw, Skull, Users } from 'lucide-react'
 import { useLanguage } from '@/components/language-context'
+import {
+  useDeleteVotesByRoom,
+  useResetPlayersForGame,
+  useResetRoom,
+} from '@/queries'
 
 interface ResultsScreenProps {
   room: Room
@@ -23,16 +22,20 @@ export function ResultsScreen({ room, players }: ResultsScreenProps) {
   const router = useRouter()
   const { t } = useLanguage()
 
-  // Encontrar o impostor
+  const deleteVotesMutation = useDeleteVotesByRoom()
+  const resetPlayersMutation = useResetPlayersForGame()
+  const resetRoomMutation = useResetRoom()
+
+  // Find the impostor
   const impostor = players.find((p) => p.is_impostor)
 
-  // Jogadores ativos (não eliminados)
+  // Active players (not eliminated)
   const activePlayers = players.filter((p) => !p.is_eliminated)
 
-  // Jogadores eliminados
+  // Eliminated players
   const eliminatedPlayers = players.filter((p) => p.is_eliminated)
 
-  // O impostor venceu se ele ainda está ativo e restam apenas 2 jogadores ativos
+  // Impostor won if still active and only 2 players remain
   const impostorWon = impostor && !impostor.is_eliminated && activePlayers.length <= 2
 
   const goHome = () => {
@@ -42,20 +45,23 @@ export function ResultsScreen({ room, players }: ResultsScreenProps) {
   const clientId = getClientId()
   const isHost = room.host_id === clientId
 
+  const isResetting =
+    deleteVotesMutation.isPending ||
+    resetPlayersMutation.isPending ||
+    resetRoomMutation.isPending
+
   const playAgain = async () => {
     if (!isHost) return
 
     try {
-      // 0. Proactive Cleanup: Tentar limpar votos aqui também
-      await deleteVotesByRoomId(room.id)
+      // 0. Proactive Cleanup
+      await deleteVotesMutation.mutateAsync(room.id)
 
-      // 1. Resetar status de todos os jogadores (pontuação, impostor, etc)
-      await resetPlayersForNewGame(room.id)
+      // 1. Reset all player status
+      await resetPlayersMutation.mutateAsync(room.id)
 
-      // 2. Voltar sala para 'waiting' (Lobby)
-      // O Lobby vai lidar com a limpeza de votos de cada jogador (best effort)
-      // E o jogo continuará incrementando o round (Round 1 -> 2 -> 3...) para evitar colisão de votos
-      await resetRoomToWaiting(room.id)
+      // 2. Reset room to waiting (Lobby)
+      await resetRoomMutation.mutateAsync(room.id)
     } catch (error) {
       console.error('Erro ao reiniciar jogo:', error)
     }
@@ -82,8 +88,7 @@ export function ResultsScreen({ room, players }: ResultsScreenProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Revelação da palavra */}
-        {/* Revelação da palavra */}
+        {/* Word reveal */}
         <div className="bg-primary/10 p-6 text-center border-2 border-black shadow-[4px_4px_0_0] dark:border-white dark:shadow-white">
           <p className="text-sm text-muted-foreground mb-2">{t('results.word_was')}</p>
           <p className="text-3xl font-bold text-primary uppercase">
@@ -91,8 +96,7 @@ export function ResultsScreen({ room, players }: ResultsScreenProps) {
           </p>
         </div>
 
-        {/* Quem era o impostor */}
-        {/* Quem era o impostor */}
+        {/* Impostor reveal */}
         <div className={`p-4 text-center border-2 border-black shadow-[4px_4px_0_0] dark:border-white dark:shadow-white ${impostorWon
           ? 'bg-red-500/20'
           : 'bg-green-500/20'
@@ -108,7 +112,7 @@ export function ResultsScreen({ room, players }: ResultsScreenProps) {
           )}
         </div>
 
-        {/* Jogadores eliminados */}
+        {/* Eliminated players */}
         {eliminatedPlayers.length > 0 && (
           <div className="border-2 border-black shadow-[2px_2px_0_0] dark:border-white dark:shadow-white p-4">
             <p className="text-sm text-muted-foreground mb-2 flex items-center gap-2">
@@ -128,14 +132,14 @@ export function ResultsScreen({ room, players }: ResultsScreenProps) {
           </div>
         )}
 
-        {/* Ações */}
+        {/* Actions */}
         <div className="flex gap-2 pt-4">
           <Button variant="outline" className="flex-1" onClick={goHome}>
             <Home className="mr-2" />
             {t('results.home')}
           </Button>
           {isHost && (
-            <Button className="flex-1" onClick={playAgain}>
+            <Button className="flex-1" onClick={playAgain} disabled={isResetting}>
               <RotateCcw className="mr-2" />
               {t('results.play_again')}
             </Button>

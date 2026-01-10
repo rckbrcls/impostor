@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import useSupabaseBrowser from '@/lib/supabase/browser'
+import { useQuery } from '@supabase-cache-helpers/postgrest-react-query'
 import {
   getRoomByCode,
-  getPlayersByRoomId,
-  subscribeToRoom,
-  subscribeToPlayers,
-  type Player,
-  type Room,
-} from '@/lib/supabase'
+  getPlayersByRoom,
+  useRoomSubscription,
+  usePlayersSubscription,
+} from '@/queries'
 import { getClientId } from '@/lib/game-utils'
 import { Lobby } from '@/components/game/lobby'
 import { GameScreen } from '@/components/game/game-screen'
@@ -24,96 +24,62 @@ export default function RoomPage() {
   const router = useRouter()
   const code = params.code as string
 
-  const [room, setRoom] = useState<Room | null>(null)
-  const [players, setPlayers] = useState<Player[]>([])
-  const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null)
-  const [phase, setPhase] = useState<GamePhase>('joining')
-  const [isLoading, setIsLoading] = useState(true)
-
+  const supabase = useSupabaseBrowser()
   const clientId = getClientId()
+
+  const [phase, setPhase] = useState<GamePhase>('joining')
+
+  // Query for room data
+  const {
+    data: room,
+    isLoading: isLoadingRoom,
+    error: roomError,
+  } = useQuery(getRoomByCode(supabase, code))
+
+  // Query for players (only when room exists)
+  const {
+    data: playersData,
+    isLoading: isLoadingPlayers,
+  } = useQuery(getPlayersByRoom(supabase, room?.id ?? ''), {
+    enabled: !!room?.id,
+  })
+
+  // Ensure players is always an array (handle null/undefined from query)
+  const players = playersData ?? []
+
+  // Find current player
+  const currentPlayer = players.find((p) => p.client_id === clientId) ?? null
   const isHost = room?.host_id === clientId
 
-  // Carregar dados iniciais
+  // Subscribe to realtime updates
+  useRoomSubscription(room?.id)
+  usePlayersSubscription(room?.id)
+
+  // Handle navigation on error
   useEffect(() => {
-    const loadRoom = async () => {
-      const { data: roomData, error: roomError } = await getRoomByCode(code)
-
-      if (roomError || !roomData) {
-        router.push('/')
-        return
-      }
-
-      setRoom(roomData)
-
-      const { data: playersData } = await getPlayersByRoomId(roomData.id)
-
-      setPlayers(playersData || [])
-
-      // Verificar se é jogador
-      const player = playersData?.find((p) => p.client_id === clientId)
-      setCurrentPlayer(player || null)
-
-      // Determinar fase
-      if (!player) {
-        setPhase('joining')
-      } else if (roomData.status === 'ended') {
-        setPhase('ended')
-      } else if (roomData.status === 'voting') {
-        setPhase('voting')
-      } else if (roomData.status === 'playing') {
-        setPhase('playing')
-      } else {
-        setPhase('lobby')
-      }
-
-      setIsLoading(false)
+    if (roomError) {
+      router.push('/')
     }
+  }, [roomError, router])
 
-    loadRoom()
-  }, [code, clientId, router])
-
-  // Realtime: escutar mudanças na sala
+  // Determine phase based on room status and player state
   useEffect(() => {
-    if (!room?.id) return
+    if (!room) return
 
-    const unsubscribe = subscribeToRoom(room.id, (newRoom) => {
-      setRoom(newRoom)
+    if (!currentPlayer) {
+      setPhase('joining')
+    } else if (room.status === 'ended') {
+      setPhase('ended')
+    } else if (room.status === 'voting') {
+      setPhase('voting')
+    } else if (room.status === 'playing') {
+      setPhase('playing')
+    } else {
+      setPhase('lobby')
+    }
+  }, [room, currentPlayer])
 
-      if (newRoom.status === 'ended') {
-        setPhase('ended')
-      } else if (newRoom.status === 'voting') {
-        setPhase('voting')
-      } else if (newRoom.status === 'playing') {
-        setPhase('playing')
-      } else if (newRoom.status === 'waiting') {
-        setPhase('lobby')
-      }
-    })
-
-    return unsubscribe
-  }, [room?.id])
-
-  // Realtime: escutar mudanças nos jogadores
-  useEffect(() => {
-    if (!room?.id) return
-
-    const unsubscribe = subscribeToPlayers(room.id, async () => {
-      // Recarregar lista de jogadores
-      const { data: playersData } = await getPlayersByRoomId(room.id)
-
-      setPlayers(playersData || [])
-
-      // Atualizar jogador atual
-      const player = playersData?.find((p) => p.client_id === clientId)
-      setCurrentPlayer(player || null)
-
-      if (player && phase === 'joining') {
-        setPhase('lobby')
-      }
-    })
-
-    return unsubscribe
-  }, [room?.id, clientId, phase])
+  const isLoading = isLoadingRoom || (!!room && isLoadingPlayers)
 
   if (isLoading) {
     return (

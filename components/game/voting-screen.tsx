@@ -1,22 +1,22 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import {
-  getVotesByRoomAndRound,
-  upsertVote,
-  updateRoomEnded,
-  updateRoomForNextRound,
-  eliminatePlayer,
-  subscribeToVotes,
-  type Player,
-  type Room,
-  type Vote,
-} from '@/lib/supabase'
+import useSupabaseBrowser from '@/lib/supabase/browser'
+import { type Player, type Room, type Vote } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { SelectionGroup, SelectionItem } from '@/components/ui/selection-card'
 import { Check, User, Flag, Loader2, Play } from 'lucide-react'
 import { useLanguage } from '@/components/language-context'
+import { useQuery } from '@supabase-cache-helpers/postgrest-react-query'
+import {
+  getVotesByRoomRound,
+  useVotesSubscription,
+  useUpsertVote,
+  useEndGame,
+  useNextRound,
+  useEliminatePlayer,
+} from '@/queries'
 
 interface VotingScreenProps {
   room: Room
@@ -27,13 +27,12 @@ interface VotingScreenProps {
   onEndGame: () => void
 }
 
-// Tipo de voto: pode ser um jogador ou uma ação
+// Vote type: can be a player or an action
 type VoteChoice = { type: 'player'; playerId: string } | { type: 'next_round' } | { type: 'end_game' }
 
 export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound, onEndGame }: VotingScreenProps) {
-  const [votes, setVotes] = useState<Vote[]>([])
+  const supabase = useSupabaseBrowser()
   const [myChoice, setMyChoice] = useState<VoteChoice | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const [hasVoted, setHasVoted] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [revealResult, setRevealResult] = useState(false)
@@ -41,64 +40,54 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
   const [decidedAction, setDecidedAction] = useState<'next_round' | 'end_game' | null>(null)
   const { t } = useLanguage()
 
-  const impostor = players.find((p) => p.is_impostor)
-  // Jogadores ativos (não eliminados)
-  const activePlayers = players.filter((p) => !p.is_eliminated)
+  // React Query for votes
+  const { data: votesData, isLoading: isLoadingVotes } = useQuery(getVotesByRoomRound(supabase, room.id, room.round))
+
+  // Ensure votes is always an array (handle null/undefined from query)
+  const votes = votesData ?? []
+
+  // Realtime subscription
+  useVotesSubscription(room.id, room.round)
+
+  // Mutations
+  const upsertVoteMutation = useUpsertVote()
+  const endGameMutation = useEndGame()
+  const nextRoundMutation = useNextRound()
+  const eliminatePlayerMutation = useEliminatePlayer()
+
+  const isSubmitting = upsertVoteMutation.isPending
+
+  // Safe array operations with null checks
+  const safePlayersArray = players ?? []
+  const impostor = safePlayersArray.find((p) => p.is_impostor)
+  // Active players (not eliminated)
+  const activePlayers = safePlayersArray.filter((p) => !p.is_eliminated)
   const totalActivePlayers = activePlayers.length
   const isCurrentPlayerEliminated = currentPlayer?.is_eliminated ?? false
   const isCurrentPlayerImpostor = currentPlayer?.is_impostor ?? false
 
-  // Jogadores que podem receber votos (apenas não eliminados)
+  // Players that can receive votes (only not eliminated)
   const votablePlayers = activePlayers
 
-  // Carregar votos existentes
+  // Check if I already voted
   useEffect(() => {
-    const loadVotes = async () => {
-      const { data } = await getVotesByRoomAndRound(room.id, room.round)
-
-      if (data) {
-        setVotes(data)
-        // Verificar se já votei
-        const myVote = data.find((v) => v.voter_id === currentPlayer?.id)
-        if (myVote) {
-          // Reconstruir a escolha a partir do voto salvo
-          if (myVote.impostor_vote) {
-            setMyChoice({ type: 'player', playerId: myVote.impostor_vote })
-          } else if (myVote.action_vote === 'next_round') {
-            setMyChoice({ type: 'next_round' })
-          } else if (myVote.action_vote === 'end_game') {
-            setMyChoice({ type: 'end_game' })
-          }
-          setHasVoted(true)
+    if (votes && currentPlayer) {
+      const myVote = votes.find((v) => v.voter_id === currentPlayer.id)
+      if (myVote) {
+        // Reconstruct choice from saved vote
+        if (myVote.impostor_vote) {
+          setMyChoice({ type: 'player', playerId: myVote.impostor_vote })
+        } else if (myVote.action_vote === 'next_round') {
+          setMyChoice({ type: 'next_round' })
+        } else if (myVote.action_vote === 'end_game') {
+          setMyChoice({ type: 'end_game' })
         }
+        setHasVoted(true)
       }
     }
+  }, [votes, currentPlayer?.id])
 
-    loadVotes()
-  }, [room.id, room.round, currentPlayer?.id])
-
-  // Realtime subscription para votos
-  useEffect(() => {
-    // Carregar votos iniciais
-    const loadVotes = async () => {
-      const { data } = await getVotesByRoomAndRound(room.id, room.round)
-      console.log('[Voting] Loaded votes:', data?.length)
-      setVotes(data || [])
-    }
-    loadVotes()
-
-    const unsubscribe = subscribeToVotes(room.id, room.round, async () => {
-      console.log('[Voting] Realtime event received')
-      // Recarregar votos
-      const { data } = await getVotesByRoomAndRound(room.id, room.round)
-      console.log('[Voting] Votes after realtime:', data?.length)
-      setVotes(data || [])
-    })
-
-    return unsubscribe
-  }, [room.id, room.round])
-
-  // Processar resultados quando todos jogadores ATIVOS votarem (apenas o host processa para evitar race conditions)
+  // Process results when all ACTIVE players voted (only host processes to avoid race conditions)
   useEffect(() => {
     console.log('[Voting] Check process:', { votesCount: votes.length, totalActivePlayers, isProcessing, revealResult, isHost })
     if (votes.length === totalActivePlayers && votes.length > 0 && !isProcessing && !revealResult && isHost) {
@@ -107,17 +96,17 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
     }
   }, [votes, totalActivePlayers, isProcessing, revealResult, isHost])
 
-  // Contar votos para cada jogador (impostor)
+  // Count votes for each player (impostor)
   const getImpostorVoteCount = (playerId: string) => {
     return votes.filter((v) => v.impostor_vote === playerId).length
   }
 
-  // Contar votos de ação
+  // Count action votes
   const getActionVoteCount = (action: 'next_round' | 'end_game') => {
     return votes.filter((v) => v.action_vote === action && !v.impostor_vote).length
   }
 
-  // Jogadores ativos que ainda não votaram
+  // Active players that haven't voted yet
   const pendingVoters = activePlayers.filter(
     (p) => !votes.some((v) => v.voter_id === p.id)
   )
@@ -125,10 +114,8 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
   const submitVote = async () => {
     if (!currentPlayer || !myChoice) return
 
-    setIsSubmitting(true)
-
     try {
-      // Determinar o que salvar baseado na escolha
+      // Determine what to save based on choice
       let impostorVote: string | null = null
       let actionVote: 'next_round' | 'end_game' | null = null
 
@@ -140,19 +127,23 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
         actionVote = 'end_game'
       }
 
-      await upsertVote(room.id, room.round, currentPlayer.id, impostorVote, actionVote)
+      await upsertVoteMutation.mutateAsync({
+        roomId: room.id,
+        round: room.round,
+        voterId: currentPlayer.id,
+        impostorVote,
+        actionVote,
+      })
       setHasVoted(true)
     } catch (error) {
       console.error('Erro ao votar:', error)
-    } finally {
-      setIsSubmitting(false)
     }
   }
 
   const processVotingResults = async () => {
     setIsProcessing(true)
 
-    // Contar votos por tipo
+    // Count votes by type
     const playerVotes: Record<string, number> = {}
     let nextRoundVotes = 0
     let endGameVotes = 0
@@ -167,7 +158,7 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
       }
     }
 
-    // Encontrar o jogador mais votado
+    // Find most voted player
     let mostVotedId: string | null = null
     let maxVotes = 0
     for (const [playerId, count] of Object.entries(playerVotes)) {
@@ -177,7 +168,7 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
       }
     }
 
-    // Guardar informação do mais votado para exibir
+    // Save info about most voted for display
     if (mostVotedId) {
       const votedPlayer = players.find((p) => p.id === mostVotedId)
       setMostVotedPlayer({
@@ -190,53 +181,56 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
 
     setRevealResult(true)
 
-    // Determinar ação baseada na maioria
+    // Determine action based on majority
     let action: 'next_round' | 'end_game' | 'eliminate'
 
-    // Combina votos em jogadores vs votos em próxima rodada vs votos em finalizar
+    // Combine player votes vs next round votes vs end game votes
     if (endGameVotes > maxVotes && endGameVotes > nextRoundVotes) {
       action = 'end_game'
     } else if (maxVotes > nextRoundVotes && maxVotes > endGameVotes && mostVotedId) {
-      // Maioria votou em um jogador - eliminar ou terminar
+      // Majority voted for a player - eliminate or end
       action = 'eliminate'
     } else {
-      // Empate ou maioria votou em próxima rodada - apenas passar a rodada
+      // Tie or majority voted for next round - just pass the round
       action = 'next_round'
     }
 
-    // Definir ação decidida (não executar automaticamente)
+    // Set decided action (don't execute automatically)
     setDecidedAction(action === 'eliminate' ? 'next_round' : action)
     setIsProcessing(false)
   }
 
   const startNextRound = async () => {
     try {
-      // Se alguém foi votado e não era o impostor, eliminar
+      // If someone was voted and wasn't the impostor, eliminate
       if (mostVotedPlayer?.player && !mostVotedPlayer.wasImpostor) {
-        await eliminatePlayer(mostVotedPlayer.player.id)
+        await eliminatePlayerMutation.mutateAsync({
+          playerId: mostVotedPlayer.player.id,
+          roomId: room.id,
+        })
       }
 
-      // Se alguém foi votado E era o impostor, o impostor perdeu!
+      // If someone was voted AND was the impostor, impostor lost!
       if (mostVotedPlayer?.player && mostVotedPlayer.wasImpostor) {
-        await updateRoomEnded(room.id)
+        await endGameMutation.mutateAsync(room.id)
         onEndGame()
         return
       }
 
-      // Verificar quantos jogadores ativos restam após possível eliminação
+      // Check how many active players remain after possible elimination
       const remainingActive = mostVotedPlayer?.player && !mostVotedPlayer.wasImpostor
         ? activePlayers.filter(p => p.id !== mostVotedPlayer.player!.id).length
         : activePlayers.length
 
-      // Se restar apenas 2 jogadores (impostor + 1), o impostor vence!
+      // If only 2 players remain (impostor + 1), impostor wins!
       if (remainingActive <= 2) {
-        await updateRoomEnded(room.id)
+        await endGameMutation.mutateAsync(room.id)
         onEndGame()
         return
       }
 
-      // Atualizar sala com nova rodada (mesma palavra, mesmo impostor)
-      await updateRoomForNextRound(room.id, room.round + 1)
+      // Update room with new round (same word, same impostor)
+      await nextRoundMutation.mutateAsync({ roomId: room.id, round: room.round + 1 })
 
       onNextRound()
     } catch (error) {
@@ -246,7 +240,7 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
 
   const endGame = async () => {
     try {
-      await updateRoomEnded(room.id)
+      await endGameMutation.mutateAsync(room.id)
       onEndGame()
     } catch (error) {
       console.error('Erro ao finalizar jogo:', error)
@@ -255,7 +249,7 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
 
   const canSubmit = myChoice && !hasVoted
 
-  // Verificar se um jogador está selecionado
+  // Check if a player is selected
   const isPlayerSelected = (playerId: string) => {
     return myChoice?.type === 'player' && myChoice.playerId === playerId
   }
@@ -273,10 +267,10 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Se está revelando resultado */}
+        {/* If revealing result */}
         {revealResult && (
           <div className="space-y-4">
-            {/* Quem foi o mais votado */}
+            {/* Who was most voted */}
             {mostVotedPlayer?.player ? (
               <div className={`p-6 text-center border-2 border-black shadow-[4px_4px_0_0] dark:border-white dark:shadow-white ${mostVotedPlayer.wasImpostor
                 ? 'bg-green-500/20'
@@ -333,7 +327,7 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
           </div>
         )}
 
-        {/* Votação única */}
+        {/* Voting */}
         {!revealResult && (
           <>
             <div className="space-y-3">
@@ -341,7 +335,7 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
                 {t('voting.choose_option')}
               </p>
 
-              {/* Seção: Votar em jogador como impostor */}
+              {/* Section: Vote for player as impostor */}
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground flex items-center gap-2">
                   {t('voting.vote_impostor_label')}
@@ -375,7 +369,7 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
                 </SelectionGroup>
               </div>
 
-              {/* Divisor */}
+              {/* Divider */}
               <div className="relative py-2">
                 <div className="absolute inset-0 flex items-center">
                   <span className="w-full border-t border-black dark:border-white" />
@@ -385,7 +379,7 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
                 </div>
               </div>
 
-              {/* Seção: Ações alternativas */}
+              {/* Section: Alternative actions */}
               <SelectionGroup>
                 <SelectionItem
                   checked={myChoice?.type === 'next_round'}
@@ -428,7 +422,7 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
               </SelectionGroup>
             </div>
 
-            {/* Botão de confirmar */}
+            {/* Confirm button */}
             {!hasVoted && (
               <Button
                 className="w-full"
@@ -458,7 +452,7 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
               </div>
             )}
 
-            {/* Status de votação */}
+            {/* Voting status */}
             <div className="text-center text-sm text-muted-foreground">
               {pendingVoters.length > 0 ? (
                 <>

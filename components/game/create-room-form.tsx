@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createRoom, getRoomIdByCode, addPlayer } from '@/lib/supabase'
 import { generateRoomCode, getClientId } from '@/lib/game-utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,36 +9,42 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Copy, Check, Users } from 'lucide-react'
 import { useLanguage } from '@/components/language-context'
+import { useCreateRoom, useAddPlayer } from '@/queries'
 
 export function CreateRoomForm() {
   const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
   const [roomCode, setRoomCode] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [hostName, setHostName] = useState('')
   const { t } = useLanguage()
 
+  const createRoomMutation = useCreateRoom()
+  const addPlayerMutation = useAddPlayer()
+
+  const isLoading = createRoomMutation.isPending || addPlayerMutation.isPending
+
   const handleCreateRoom = async () => {
     if (!hostName.trim()) return
-    setIsLoading(true)
+
     try {
       const code = generateRoomCode()
       const hostId = getClientId()
 
-      const { error } = await createRoom(code, hostId)
-      if (error) throw error
+      // Create room and get room ID
+      const roomData = await createRoomMutation.mutateAsync({ code, hostId })
 
-      // Host também entra como jogador
-      const { data: roomData } = await getRoomIdByCode(code)
+      // Host also joins as player
       if (roomData?.id) {
-        await addPlayer(roomData.id, hostId, hostName.trim())
+        await addPlayerMutation.mutateAsync({
+          roomId: roomData.id,
+          clientId: hostId,
+          name: hostName.trim(),
+        })
       }
 
       setRoomCode(code)
     } catch (error) {
       console.error('Erro ao criar sala:', error)
-    } finally {
-      setIsLoading(false)
     }
   }
 

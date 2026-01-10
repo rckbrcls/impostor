@@ -1,20 +1,19 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import {
-  deleteVotesByRoomId,
-  resetPlayersForNewRound,
-  updatePlayerAsImpostor,
-  updateRoomForGameStart,
-  type Player,
-  type Room,
-} from '@/lib/supabase'
+import { type Player, type Room } from '@/lib/supabase'
 import { getClientId } from '@/lib/game-utils'
 import { getRandomWord } from '@/lib/words'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Copy, Check, Play, Users } from 'lucide-react'
 import { useLanguage } from '@/components/language-context'
+import {
+  useDeleteVotesByRoom,
+  useResetPlayersForRound,
+  useSetImpostor,
+  useStartGame,
+} from '@/queries'
 
 interface LobbyProps {
   room: Room
@@ -24,7 +23,6 @@ interface LobbyProps {
 
 export function Lobby({ room, players, onGameStart }: LobbyProps) {
   const [copied, setCopied] = useState(false)
-  const [isStarting, setIsStarting] = useState(false)
   const clientId = getClientId()
   const isHost = room.host_id === clientId
   const isDev = process.env.NODE_ENV === 'development'
@@ -32,18 +30,27 @@ export function Lobby({ room, players, onGameStart }: LobbyProps) {
   const canStart = players.length >= minPlayers
   const { t } = useLanguage()
 
-  // Limpar votos antigos ao entrar no lobby (preparar para nova partida)
+  const deleteVotesMutation = useDeleteVotesByRoom()
+  const resetPlayersMutation = useResetPlayersForRound()
+  const setImpostorMutation = useSetImpostor()
+  const startGameMutation = useStartGame()
+
+  const isStarting =
+    deleteVotesMutation.isPending ||
+    resetPlayersMutation.isPending ||
+    setImpostorMutation.isPending ||
+    startGameMutation.isPending
+
+  // Clean old votes when entering lobby
   useEffect(() => {
     const cleanVotes = async () => {
-      // Encontrar meu jogador
-      const myPlayer = players.find(p => p.client_id === clientId)
+      const myPlayer = players.find((p) => p.client_id === clientId)
       if (!myPlayer) return
 
       try {
         console.log('[Lobby] Cleaning votes for player:', myPlayer.name)
-        // Note: We're cleaning all votes for this room as a host cleanup
         if (isHost) {
-          await deleteVotesByRoomId(room.id)
+          await deleteVotesMutation.mutateAsync(room.id)
         }
         console.log('[Lobby] Cleanup success')
       } catch (err) {
@@ -52,7 +59,8 @@ export function Lobby({ room, players, onGameStart }: LobbyProps) {
     }
 
     cleanVotes()
-  }, [room.id, players, clientId, isHost])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room.id, isHost])
 
   const copyLink = async () => {
     const link = `${window.location.origin}/room/${room.code}`
@@ -64,30 +72,31 @@ export function Lobby({ room, players, onGameStart }: LobbyProps) {
   const startGame = async () => {
     if (!canStart || !isHost) return
 
-    setIsStarting(true)
     try {
-      // Force cleanup: Host tenta limpar tudo antes de começar
+      // Force cleanup: Host cleans all votes before starting
       console.log('[Lobby] Host starting game, force cleaning all votes...')
-      await deleteVotesByRoomId(room.id)
+      await deleteVotesMutation.mutateAsync(room.id)
 
-      // Sortear impostor
+      // Pick impostor
       const impostorIndex = Math.floor(Math.random() * players.length)
       const impostorId = players[impostorIndex].id
 
-      // Resetar todos para não-impostor e não eliminado
-      await resetPlayersForNewRound(room.id)
+      // Reset all players
+      await resetPlayersMutation.mutateAsync(room.id)
 
-      // Marcar o impostor
-      await updatePlayerAsImpostor(impostorId)
+      // Mark the impostor
+      await setImpostorMutation.mutateAsync({ playerId: impostorId, roomId: room.id })
 
-      // Atualizar sala
-      await updateRoomForGameStart(room.id, room.round + 1, getRandomWord())
+      // Update room
+      await startGameMutation.mutateAsync({
+        roomId: room.id,
+        round: room.round + 1,
+        word: getRandomWord(),
+      })
 
       onGameStart()
     } catch (error) {
       console.error('Erro ao iniciar jogo:', error)
-    } finally {
-      setIsStarting(false)
     }
   }
 
@@ -104,7 +113,7 @@ export function Lobby({ room, players, onGameStart }: LobbyProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Lista de jogadores */}
+        {/* Player list */}
         <div className="border-2 border-black dark:border-white shadow-[4px_4px_0_0] dark:shadow-white p-4">
           <p className="text-sm text-muted-foreground mb-2">
             {t('lobby.players_title', players.length)}
@@ -127,7 +136,7 @@ export function Lobby({ room, players, onGameStart }: LobbyProps) {
           </ul>
         </div>
 
-        {/* Botões */}
+        {/* Buttons */}
         <div className="flex gap-2">
           <Button variant="outline" className="flex-1" onClick={copyLink}>
             {copied ? <Check className="mr-2" /> : <Copy className="mr-2" />}
