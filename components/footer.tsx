@@ -12,7 +12,7 @@ export function Footer() {
         href="https://www.erickbarcelos.com"
         target="_blank"
         rel="noopener noreferrer"
-        className="font-bold underline decoration-2 underline-offset-4"
+        className="font-bold underline hover:text-accent decoration-2 underline-offset-4 transition-colors"
       >
         erick barcelos
       </a>
