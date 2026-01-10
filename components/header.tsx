@@ -40,20 +40,17 @@ export function Header() {
               </SheetDescription>
             </SheetHeader>
             <div className="flex flex-col gap-4 mt-4">
-              <Button
-                variant="ghost"
-                asChild
-                className="justify-start"
-                onClick={() => setIsOpen(false)}
-              >
-                <Link href="/">
+              <Link passHref href="/">
+                <Button
+                  variant="ghost"
+                  className="justify-start w-full"
+                  onClick={() => setIsOpen(false)}
+                >
+
                   <Home className="mr-2 size-4" />
-                  Impostor
-                </Link>
-              </Button>
-
-
-
+                  Home
+                </Button>
+              </Link>
             </div>
             <SheetFooter className="flex-row justify-between sm:justify-end gap-2">
               <LanguageSwitcher />
@@ -64,17 +61,17 @@ export function Header() {
       </div>
 
       {/* Desktop View: Full Header */}
-      <header className="hidden sm:flex items-center justify-between border-b-2 border-black dark:border-white bg-white p-4 dark:bg-zinc-900 shadow-sm relative z-40">
-        <Button
-          variant="ghost"
-          asChild
-          className="gap-2 hover:bg-transparent hover:underline hover:decoration-2 hover:underline-offset-4"
-        >
-          <Link href="/">
+      <header className="hidden sm:flex items-center justify-between border-b-2 border-black dark:border-white bg-white p-4 dark:bg-zinc-950 shadow-sm relative z-40">
+        <Link passHref href="/">
+          <Button
+            variant="outline"
+            className="gap-2"
+          >
+
             <Home className="size-5" />
-            <span className="font-bold text-lg">Impostor</span>
-          </Link>
-        </Button>
+            <span className="font-bold text-lg">Home</span>
+          </Button>
+        </Link>
         <div className="flex items-center gap-2">
           <LanguageSwitcher />
           <ModeToggle />

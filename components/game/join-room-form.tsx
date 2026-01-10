@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import useSupabaseBrowser from '@/lib/supabase/browser'
+import { getRoomByCode, getPlayerByClient, useAddPlayer } from '@/queries'
 import { getClientId } from '@/lib/game-utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,11 +17,14 @@ interface JoinRoomFormProps {
 
 export function JoinRoomForm({ initialCode = '' }: JoinRoomFormProps) {
   const router = useRouter()
+  const supabase = useSupabaseBrowser()
   const [code, setCode] = useState(initialCode)
   const [name, setName] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const { t } = useLanguage()
+
+  const addPlayerMutation = useAddPlayer()
 
   const joinRoom = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -30,12 +34,8 @@ export function JoinRoomForm({ initialCode = '' }: JoinRoomFormProps) {
     setError('')
 
     try {
-      // Buscar sala pelo código
-      const { data: room, error: roomError } = await supabase
-        .from('rooms')
-        .select('id, status')
-        .eq('code', code.toUpperCase())
-        .single()
+      // Fetch room by code using query function
+      const { data: room, error: roomError } = await getRoomByCode(supabase, code)
 
       if (roomError || !room) {
         setError(t('join_room.error_not_found'))
@@ -49,30 +49,21 @@ export function JoinRoomForm({ initialCode = '' }: JoinRoomFormProps) {
 
       const clientId = getClientId()
 
-      // Verificar se já está na sala
-      const { data: existingPlayer } = await supabase
-        .from('players')
-        .select('id')
-        .eq('room_id', room.id)
-        .eq('client_id', clientId)
-        .single()
+      // Check if already in room
+      const { data: existingPlayer } = await getPlayerByClient(supabase, room.id, clientId)
 
       if (existingPlayer) {
-        // Já está na sala, apenas redireciona
+        // Already in room, just redirect
         router.push(`/room/${code.toUpperCase()}`)
         return
       }
 
-      // Entrar na sala
-      const { error: playerError } = await supabase.from('players').insert({
-        room_id: room.id,
-        client_id: clientId,
+      // Join the room
+      await addPlayerMutation.mutateAsync({
+        roomId: room.id,
+        clientId,
         name: name.trim(),
-        is_impostor: false,
-        score: 0,
       })
-
-      if (playerError) throw playerError
 
       router.push(`/room/${code.toUpperCase()}`)
     } catch (err) {

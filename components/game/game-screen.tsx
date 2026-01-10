@@ -3,10 +3,11 @@
 import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { supabase, type Player, type Room } from '@/lib/supabase'
+import { type Player, type Room } from '@/lib/supabase'
 import { getClientId } from '@/lib/game-utils'
 import { Vote } from 'lucide-react'
 import { useLanguage } from '@/components/language-context'
+import { useUpdateRoomStatus } from '@/queries'
 
 interface GameScreenProps {
   room: Room
@@ -17,23 +18,19 @@ interface GameScreenProps {
 }
 
 export function GameScreen({ room, players, currentPlayer, isHost, onStartVoting }: GameScreenProps) {
-  const [isStartingVote, setIsStartingVote] = useState(false)
   const clientId = getClientId()
   const isImpostor = currentPlayer?.is_impostor ?? false
   const { t } = useLanguage()
 
+  const updateRoomStatusMutation = useUpdateRoomStatus()
+  const isStartingVote = updateRoomStatusMutation.isPending
+
   const handleStartVoting = async () => {
-    setIsStartingVote(true)
     try {
-      await supabase
-        .from('rooms')
-        .update({ status: 'voting' })
-        .eq('id', room.id)
+      await updateRoomStatusMutation.mutateAsync({ roomId: room.id, status: 'voting' })
       onStartVoting()
     } catch (error) {
       console.error('Erro ao iniciar votação:', error)
-    } finally {
-      setIsStartingVote(false)
     }
   }
 
@@ -48,7 +45,7 @@ export function GameScreen({ room, players, currentPlayer, isHost, onStartVoting
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Resultado do jogador */}
+
         <div className={`p-8 text-center border-2 border-black shadow-[4px_4px_0_0] dark:border-white dark:shadow-white ${isImpostor
           ? 'bg-red-500/20'
           : 'bg-green-500/20'
@@ -76,7 +73,7 @@ export function GameScreen({ room, players, currentPlayer, isHost, onStartVoting
           )}
         </div>
 
-        {/* Lista de jogadores */}
+        {/* Player list */}
         <div className="border-2 border-black shadow-[4px_4px_0_0] dark:border-white dark:shadow-white p-4">
           <p className="text-sm text-muted-foreground mb-2 text-center">
             {t('game.players_round')}
@@ -99,7 +96,7 @@ export function GameScreen({ room, players, currentPlayer, isHost, onStartVoting
           </div>
         </div>
 
-        {/* Botão de votação para o host */}
+        {/* Voting button for host */}
         {isHost ? (
           <Button
             className="w-full"

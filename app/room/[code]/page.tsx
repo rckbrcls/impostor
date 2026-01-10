@@ -2,13 +2,23 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { supabase, type Player, type Room } from '@/lib/supabase'
+import useSupabaseBrowser from '@/lib/supabase/browser'
+import { useQuery } from '@supabase-cache-helpers/postgrest-react-query'
+import {
+  getRoomByCode,
+  getPlayersByRoom,
+  useRoomSubscription,
+  usePlayersSubscription,
+} from '@/queries'
 import { getClientId } from '@/lib/game-utils'
+import { type Player, type Room } from '@/lib/supabase'
 import { Lobby } from '@/components/game/lobby'
 import { GameScreen } from '@/components/game/game-screen'
 import { VotingScreen } from '@/components/game/voting-screen'
 import { ResultsScreen } from '@/components/game/results-screen'
 import { JoinRoomForm } from '@/components/game/join-room-form'
+import { useLanguage } from '@/components/language-context'
+import { Skeleton } from '@/components/ui/skeleton'
 
 type GamePhase = 'joining' | 'lobby' | 'playing' | 'voting' | 'ended'
 
@@ -17,145 +27,72 @@ export default function RoomPage() {
   const router = useRouter()
   const code = params.code as string
 
-  const [room, setRoom] = useState<Room | null>(null)
-  const [players, setPlayers] = useState<Player[]>([])
-  const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null)
-  const [phase, setPhase] = useState<GamePhase>('joining')
-  const [isLoading, setIsLoading] = useState(true)
-
+  const supabase = useSupabaseBrowser()
   const clientId = getClientId()
+  const { t } = useLanguage()
+
+  const [phase, setPhase] = useState<GamePhase>('joining')
+
+  // Query for room data
+  const {
+    data: roomData,
+    isLoading: isLoadingRoom,
+    error: roomError,
+  } = useQuery(getRoomByCode(supabase, code))
+
+  // Type cast is needed because Supabase returns nullable fields
+  const room = roomData as Room | undefined
+
+  // Query for players (only when room exists)
+  const {
+    data: playersData,
+    isLoading: isLoadingPlayers,
+  } = useQuery(getPlayersByRoom(supabase, room?.id ?? ''), {
+    enabled: !!room?.id,
+  })
+
+  // Ensure players is always an array (handle null/undefined from query)
+  // Type cast is needed because Supabase returns nullable fields
+  const players = (playersData ?? []) as Player[]
+
+  // Find current player
+  const currentPlayer = players.find((p) => p.client_id === clientId) ?? null
   const isHost = room?.host_id === clientId
 
-  // Carregar dados iniciais
+  // Subscribe to realtime updates
+  useRoomSubscription(room?.id)
+  usePlayersSubscription(room?.id)
+
+  // Handle navigation on error
   useEffect(() => {
-    const loadRoom = async () => {
-      const { data: roomData, error: roomError } = await supabase
-        .from('rooms')
-        .select('*')
-        .eq('code', code.toUpperCase())
-        .single()
-
-      if (roomError || !roomData) {
-        router.push('/')
-        return
-      }
-
-      setRoom(roomData)
-
-      const { data: playersData } = await supabase
-        .from('players')
-        .select('*')
-        .eq('room_id', roomData.id)
-        .order('joined_at', { ascending: true })
-
-      setPlayers(playersData || [])
-
-      // Verificar se é jogador
-      const player = playersData?.find((p) => p.client_id === clientId)
-      setCurrentPlayer(player || null)
-
-      // Determinar fase
-      if (!player) {
-        setPhase('joining')
-      } else if (roomData.status === 'ended') {
-        setPhase('ended')
-      } else if (roomData.status === 'voting') {
-        setPhase('voting')
-      } else if (roomData.status === 'playing') {
-        setPhase('playing')
-      } else {
-        setPhase('lobby')
-      }
-
-      setIsLoading(false)
+    if (roomError) {
+      router.push('/')
     }
+  }, [roomError, router])
 
-    loadRoom()
-  }, [code, clientId, router])
-
-  // Realtime: escutar mudanças na sala
+  // Determine phase based on room status and player state
   useEffect(() => {
-    if (!room?.id) return
+    if (!room) return
 
-    const roomChannel = supabase
-      .channel(`room-${room.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'rooms',
-          filter: `id=eq.${room.id}`,
-        },
-        (payload) => {
-          const newRoom = payload.new as Room
-          setRoom(newRoom)
-
-          if (newRoom.status === 'ended') {
-            setPhase('ended')
-          } else if (newRoom.status === 'voting') {
-            setPhase('voting')
-          } else if (newRoom.status === 'playing') {
-            setPhase('playing')
-          } else if (newRoom.status === 'waiting') {
-            setPhase('lobby')
-          }
-        }
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(roomChannel)
+    if (!currentPlayer) {
+      setPhase('joining')
+    } else if (room.status === 'ended') {
+      setPhase('ended')
+    } else if (room.status === 'voting') {
+      setPhase('voting')
+    } else if (room.status === 'playing') {
+      setPhase('playing')
+    } else {
+      setPhase('lobby')
     }
-  }, [room?.id])
+  }, [room, currentPlayer])
 
-  // Realtime: escutar mudanças nos jogadores
-  useEffect(() => {
-    if (!room?.id) return
-
-    const playersChannel = supabase
-      .channel(`players-${room.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'players',
-          filter: `room_id=eq.${room.id}`,
-        },
-        async () => {
-          // Recarregar lista de jogadores
-          const { data: playersData } = await supabase
-            .from('players')
-            .select('*')
-            .eq('room_id', room.id)
-            .order('joined_at', { ascending: true })
-
-          setPlayers(playersData || [])
-
-          // Atualizar jogador atual
-          const player = playersData?.find((p) => p.client_id === clientId)
-          setCurrentPlayer(player || null)
-
-          if (player && phase === 'joining') {
-            setPhase('lobby')
-          }
-        }
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(playersChannel)
-    }
-  }, [room?.id, clientId, phase])
+  const isLoading = isLoadingRoom || (!!room && isLoadingPlayers)
 
   if (isLoading) {
     return (
-      <div className="min-h-full flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Carregando sala...</p>
-        </div>
+      <div className="min-h-full flex items-center justify-center p-4">
+        <Skeleton className="w-full max-w-md h-80 border-2 border-black dark:border-white shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]" />
       </div>
     )
   }
@@ -165,7 +102,7 @@ export default function RoomPage() {
   }
 
   return (
-    <main className="min-h-full p-4 flex items-center justify-center bg-gradient-to-br from-background to-muted">
+    <main className="min-h-full p-4 flex items-center justify-center">
       {phase === 'joining' && <JoinRoomForm initialCode={code} />}
 
       {phase === 'lobby' && (

@@ -1,19 +1,16 @@
 'use client'
 
-import { useState } from 'react'
-import { CreateRoomForm } from '@/components/game/create-room-form'
 import Image from 'next/image'
-import { JoinRoomForm } from '@/components/game/join-room-form'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { useLanguage } from '@/components/language-context'
 
 export default function Home() {
-  const [mode, setMode] = useState<'create' | 'join' | null>(null)
   const { t } = useLanguage()
 
   return (
-    <main className="min-h-full p-4 flex items-center justify-center ">
+    <main className="min-h-full p-4 flex items-center justify-center">
       <div className="w-full max-w-md space-y-8">
         {/* Header */}
         <div className="text-center space-y-2">
@@ -32,64 +29,33 @@ export default function Home() {
           </p>
         </div>
 
-        {/* Seleção de modo */}
-        {mode === null && (
-          <div className="space-y-4">
+        {/* Action Buttons */}
+        <div className="space-y-3">
+          <Link passHref href="/create">
             <Button
-              className="w-full h-14 text-lg"
+              className="w-full h-14 text-lg mb-4"
               size="lg"
-              onClick={() => setMode('create')}
             >
               {t('home.create_room')}
             </Button>
+          </Link>
 
-            <div className="flex items-center gap-4">
-              <Separator className="flex-1" />
-              <span className="text-muted-foreground text-sm">{t('common.or')}</span>
-              <Separator className="flex-1" />
-            </div>
+          <div className="flex items-center gap-4">
+            <Separator className="flex-1" />
+            <span className="text-muted-foreground text-sm">{t('common.or')}</span>
+            <Separator className="flex-1" />
+          </div>
 
+          <Link passHref href="/join">
             <Button
               className="w-full h-14 text-lg"
               size="lg"
               variant="outline"
-              onClick={() => setMode('join')}
             >
               {t('home.join_room')}
             </Button>
-          </div>
-        )}
-
-        {/* Formulários */}
-        {mode === 'create' && (
-          <div className="space-y-4">
-            <CreateRoomForm />
-            <Button
-              variant="ghost"
-              className="w-full"
-              onClick={() => setMode(null)}
-            >
-              {t('common.back')}
-            </Button>
-          </div>
-        )}
-
-        {/* Formulários */}
-        {mode === 'join' && (
-          <div className="space-y-4">
-            <JoinRoomForm />
-            <Button
-              variant="ghost"
-              className="w-full"
-              onClick={() => setMode(null)}
-            >
-              {t('common.back')}
-            </Button>
-          </div>
-        )}
-
-        {/* Footer */}
-
+          </Link>
+        </div>
       </div>
     </main>
   )

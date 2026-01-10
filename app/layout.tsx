@@ -6,6 +6,7 @@ import { LanguageProvider } from "@/components/language-context";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { ThemeProvider } from "@/components/theme-provider";
+import { ReactQueryClientProvider } from "@/components/ReactQueryClientProvider";
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -36,25 +37,27 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={inter.variable}>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} ${fredoka.variable} antialiased h-[100svh] overflow-hidden flex flex-col`}
-      >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
+    <ReactQueryClientProvider>
+      <html lang="en" suppressHydrationWarning className={inter.variable}>
+        <body
+          className={`${geistSans.variable} ${geistMono.variable} ${fredoka.variable} antialiased h-[100svh] overflow-hidden flex flex-col`}
         >
-          <LanguageProvider>
-            <Header />
-            <main className="flex-1 w-full overflow-y-auto">
-              {children}
-            </main>
-            <Footer />
-          </LanguageProvider>
-        </ThemeProvider>
-      </body>
-    </html>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <LanguageProvider>
+              <Header />
+              <main className="flex-1 w-full overflow-y-auto">
+                {children}
+              </main>
+              <Footer />
+            </LanguageProvider>
+          </ThemeProvider>
+        </body>
+      </html>
+    </ReactQueryClientProvider>
   );
 }
