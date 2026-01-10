@@ -48,7 +48,7 @@ export function GameScreen({ room, players, currentPlayer, isHost, onStartVoting
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Resultado do jogador */}
+
         <div className={`p-8 text-center border-2 border-black shadow-[4px_4px_0_0] dark:border-white dark:shadow-white ${isImpostor
           ? 'bg-red-500/20'
           : 'bg-green-500/20'
