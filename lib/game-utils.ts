@@ -1,3 +1,5 @@
+import { v4 as uuidv4 } from "uuid";
+
 // Gera código de sala de 6 caracteres
 export function generateRoomCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // Sem I, O, 0, 1 para evitar confusão
@@ -14,7 +16,7 @@ export function getClientId(): string {
 
   let clientId = localStorage.getItem("impostor_client_id");
   if (!clientId) {
-    clientId = crypto.randomUUID();
+    clientId = uuidv4();
     localStorage.setItem("impostor_client_id", clientId);
   }
   return clientId;
