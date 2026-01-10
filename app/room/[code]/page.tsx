@@ -11,6 +11,7 @@ import {
   usePlayersSubscription,
 } from '@/queries'
 import { getClientId } from '@/lib/game-utils'
+import { type Player } from '@/lib/supabase'
 import { Lobby } from '@/components/game/lobby'
 import { GameScreen } from '@/components/game/game-screen'
 import { VotingScreen } from '@/components/game/voting-screen'
@@ -45,7 +46,8 @@ export default function RoomPage() {
   })
 
   // Ensure players is always an array (handle null/undefined from query)
-  const players = playersData ?? []
+  // Type cast is needed because Supabase returns nullable fields
+  const players = (playersData ?? []) as Player[]
 
   // Find current player
   const currentPlayer = players.find((p) => p.client_id === clientId) ?? null
@@ -97,7 +99,7 @@ export default function RoomPage() {
   }
 
   return (
-    <main className="min-h-full p-4 flex items-center justify-center bg-gradient-to-br from-background to-muted">
+    <main className="min-h-full p-4 flex items-center justify-center">
       {phase === 'joining' && <JoinRoomForm initialCode={code} />}
 
       {phase === 'lobby' && (

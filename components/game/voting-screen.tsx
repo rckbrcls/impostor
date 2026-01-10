@@ -44,7 +44,8 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
   const { data: votesData, isLoading: isLoadingVotes } = useQuery(getVotesByRoomRound(supabase, room.id, room.round))
 
   // Ensure votes is always an array (handle null/undefined from query)
-  const votes = votesData ?? []
+  // Type cast is needed because Supabase returns nullable fields
+  const votes = (votesData ?? []) as Vote[]
 
   // Realtime subscription
   useVotesSubscription(room.id, room.round)
