@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import copy from 'copy-to-clipboard'
 import { useRouter } from 'next/navigation'
 import { generateRoomCode, getClientId } from '@/lib/game-utils'
 import { Button } from '@/components/ui/button'
@@ -48,9 +49,9 @@ export function CreateRoomForm() {
     }
   }
 
-  const copyLink = async () => {
+  const copyLink = () => {
     const link = `${window.location.origin}/room/${roomCode}`
-    await navigator.clipboard.writeText(link)
+    copy(link)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }

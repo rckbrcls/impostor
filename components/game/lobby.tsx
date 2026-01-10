@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import copy from 'copy-to-clipboard'
 import { type Player, type Room } from '@/lib/supabase'
 import { getClientId } from '@/lib/game-utils'
 import { getRandomWord } from '@/lib/words'
@@ -62,9 +63,9 @@ export function Lobby({ room, players, onGameStart }: LobbyProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room.id, isHost])
 
-  const copyLink = async () => {
+  const copyLink = () => {
     const link = `${window.location.origin}/room/${room.code}`
-    await navigator.clipboard.writeText(link)
+    copy(link)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }

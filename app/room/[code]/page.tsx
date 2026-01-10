@@ -11,7 +11,7 @@ import {
   usePlayersSubscription,
 } from '@/queries'
 import { getClientId } from '@/lib/game-utils'
-import { type Player } from '@/lib/supabase'
+import { type Player, type Room } from '@/lib/supabase'
 import { Lobby } from '@/components/game/lobby'
 import { GameScreen } from '@/components/game/game-screen'
 import { VotingScreen } from '@/components/game/voting-screen'
@@ -32,10 +32,13 @@ export default function RoomPage() {
 
   // Query for room data
   const {
-    data: room,
+    data: roomData,
     isLoading: isLoadingRoom,
     error: roomError,
   } = useQuery(getRoomByCode(supabase, code))
+
+  // Type cast is needed because Supabase returns nullable fields
+  const room = roomData as Room | undefined
 
   // Query for players (only when room exists)
   const {
