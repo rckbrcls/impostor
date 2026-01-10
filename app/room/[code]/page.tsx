@@ -17,6 +17,8 @@ import { GameScreen } from '@/components/game/game-screen'
 import { VotingScreen } from '@/components/game/voting-screen'
 import { ResultsScreen } from '@/components/game/results-screen'
 import { JoinRoomForm } from '@/components/game/join-room-form'
+import { useLanguage } from '@/components/language-context'
+import { Skeleton } from '@/components/ui/skeleton'
 
 type GamePhase = 'joining' | 'lobby' | 'playing' | 'voting' | 'ended'
 
@@ -27,6 +29,7 @@ export default function RoomPage() {
 
   const supabase = useSupabaseBrowser()
   const clientId = getClientId()
+  const { t } = useLanguage()
 
   const [phase, setPhase] = useState<GamePhase>('joining')
 
@@ -88,11 +91,8 @@ export default function RoomPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-full flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Carregando sala...</p>
-        </div>
+      <div className="min-h-full flex items-center justify-center p-4">
+        <Skeleton className="w-full max-w-md h-80 border-2 border-black dark:border-white shadow-[4px_4px_0_0_#000] dark:shadow-[4px_4px_0_0_#fff]" />
       </div>
     )
   }
