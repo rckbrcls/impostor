@@ -22,5 +22,5 @@ export function getPlayerByClient(
     .eq("room_id", roomId)
     .eq("client_id", clientId)
     .throwOnError()
-    .single();
+    .maybeSingle();
 }
