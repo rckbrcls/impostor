@@ -30,10 +30,10 @@ export default function Home() {
         </div>
 
         {/* Action Buttons */}
-        <div className="space-y-4">
-          <Link href="/create">
+        <div className="space-y-3">
+          <Link passHref href="/create">
             <Button
-              className="w-full h-14 text-lg"
+              className="w-full h-14 text-lg mb-4"
               size="lg"
             >
               {t('home.create_room')}
@@ -46,7 +46,7 @@ export default function Home() {
             <Separator className="flex-1" />
           </div>
 
-          <Link href="/join">
+          <Link passHref href="/join">
             <Button
               className="w-full h-14 text-lg"
               size="lg"
