@@ -1,6 +1,11 @@
 // Re-export everything for backward compatibility
 export { supabase } from "./client";
 export type { Room, Player, Vote } from "./types";
+export type { Database } from "./database.types";
+export {
+  default as useSupabaseBrowser,
+  type TypedSupabaseClient,
+} from "./browser";
 
 // Room operations
 export {
