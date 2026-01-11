@@ -20,6 +20,7 @@ import { GameScreen } from '@/components/game/game-screen'
 import { VotingScreen } from '@/components/game/voting-screen'
 import { VoteConclusionScreen } from '@/components/game/vote-conclusion-screen'
 import { ResultsScreen } from '@/components/game/results-screen'
+import { SessionEndedScreen } from '@/components/game/session-ended-screen'
 import { JoinRoomForm } from '@/components/game/join-room-form'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -401,13 +402,20 @@ export default function RoomPage() {
         />
       )}
 
-      {(phase === 'game_over' || phase === 'room_ended') && game && (
+      {phase === 'game_over' && game && (
         <ResultsScreen
           room={room}
           game={game}
           gamePlayers={gamePlayers}
           players={players}
           onPlayAgain={fetchGameData}
+        />
+      )}
+
+      {phase === 'room_ended' && (
+        <SessionEndedScreen
+          room={room}
+          players={players}
         />
       )}
     </main>

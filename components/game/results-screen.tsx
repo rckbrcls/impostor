@@ -108,58 +108,19 @@ export function ResultsScreen({ room, game, gamePlayers, players, onPlayAgain }:
   const endSession = async () => {
     if (!isHost) return
     try {
-      await updateRoomStatus(room.id, 'game_finished')
-      // UI will update automatically via realtime -> page -> phase -> results screen prop update
+      console.log('[ResultsScreen] Ending session for room:', room.id)
+      const { error } = await updateRoomStatus(room.id, 'game_finished')
+      if (error) {
+        console.error('[ResultsScreen] Error updating room status:', error)
+      } else {
+        console.log('[ResultsScreen] Room status updated to game_finished')
+      }
     } catch (error) {
-      console.error('Erro ao finalizar sessão:', error)
+      console.error('[ResultsScreen] Exception ending session:', error)
     }
   }
 
-  // If room is finished, show global ranking
-  if (room.status === 'game_finished') {
-    const sortedPlayers = [...players].sort((a, b) => b.score - a.score)
-
-    return (
-      <Card className="w-full max-w-md mx-auto">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl flex items-center justify-center gap-2">
-            <Trophy className="text-yellow-500" />
-            {t('results.ranking_title', 'Ranking Final')}
-          </CardTitle>
-          <CardDescription>
-            {t('results.session_ended', 'Sessão encerrada')}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-2">
-            {sortedPlayers.map((p, index) => (
-              <div
-                key={p.id}
-                className={`flex items-center justify-between p-3 border-2 border-black dark:border-white shadow-[2px_2px_0_0] ${index === 0 ? 'bg-yellow-100 dark:bg-yellow-900/20' : 'bg-white dark:bg-zinc-900'
-                  }`}
-              >
-                <div className="flex items-center gap-3">
-                  <span className={`flex items-center justify-center size-8 rounded-full font-bold ${index === 0 ? 'bg-yellow-500 text-white' :
-                    index === 1 ? 'bg-gray-400 text-white' :
-                      index === 2 ? 'bg-amber-600 text-white' : 'bg-accent text-muted-foreground'
-                    }`}>
-                    {index + 1}
-                  </span>
-                  <span className="font-bold">{p.name} {p.client_id === clientId && '(você)'}</span>
-                </div>
-                <span className="font-mono font-bold text-lg">{p.score} pts</span>
-              </div>
-            ))}
-          </div>
-
-          <Button className="w-full" onClick={goHome}>
-            <Home className="mr-2 size-4" />
-            {t('results.home')}
-          </Button>
-        </CardContent>
-      </Card>
-    )
-  }
+  // Note: room.status === 'game_finished' is now handled by SessionEndedScreen
 
   return (
     <Card className="w-full max-w-md mx-auto">
@@ -244,7 +205,7 @@ export function ResultsScreen({ room, game, gamePlayers, players, onPlayAgain }:
         </div>
 
         {isHost && (
-          <Button variant="ghost" className="w-full text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20" onClick={endSession}>
+          <Button variant="outline" className="w-full text-red-500 border-red-500 dark:border-red-500 shadow-[2px_2px_0_0] dark:shadow-[2px_2px_0_0] hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20" onClick={endSession}>
             {t('results.end_session', 'Encerrar Sessão')}
           </Button>
         )}

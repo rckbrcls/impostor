@@ -9,10 +9,8 @@ export async function getRoomByCode(client: TypedSupabaseClient, code: string) {
       code,
       host_id,
       created_at,
-      games (
-        status
-      )
-    `
+      status
+    `,
     )
     .eq("code", code.toUpperCase())
     .maybeSingle();
@@ -28,17 +26,10 @@ export async function getRoomByCode(client: TypedSupabaseClient, code: string) {
     };
   }
 
-  // Check if there is any active game
-  // We consider 'playing' or 'voting' as active statuses
-  const games = data.games as unknown as { status: string }[];
-  const hasActiveGame = games?.some(
-    (g) => g.status === "playing" || g.status === "voting"
-  );
-
   return {
     data: {
       ...data,
-      status: hasActiveGame ? "playing" : "waiting",
+      status: data.status || "waiting",
     },
     error: null,
   };
