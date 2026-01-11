@@ -14,12 +14,14 @@ import {
   createRound,
   updateGameRound,
   endGame,
-  getRoundsByGame
+  getRoundsByGame,
+  incrementPlayerScore
 } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2, Check, X, ArrowRight } from 'lucide-react'
 import { useLanguage } from '@/stores/language-store'
+
 
 interface VoteConclusionScreenProps {
   room: Room
@@ -91,23 +93,17 @@ export function VoteConclusionScreen({
     if (!isHost) return
     setIsProcessing(true)
     try {
-      // Logic moved effectively from VotingScreen to here
-      // We check game over conditions based on the CURRENT state (which should have elimination/action processed)
-
-      // 1. Check if Impostor was caught
-      // To do this we need to know who was eliminated in THIS round.
-      // But we just came from VotingScreen which supposedly set `eliminated_player_id` on the current round.
-      // Ideally we would re-fetch currentRound here or assume its up to date if realtime works.
-      // Let's rely on checking `rounds` table or re-fetching.
-      // Or we can check if the elimination was the impostor.
-
-      const { data: roundData } = await getVotesByRound(currentRound.id) // Just to reuse fetch or similar? No.
-      // We need getRoundsByGame to check total eliminations
+      // Get fresh data
+      const { data: allVotes } = await getVotesByRound(currentRound.id)
       const { data: allRounds } = await getRoundsByGame(game.id)
 
       // Find 'this' round in the fresh list
       const thisRoundFresh = allRounds.find(r => r.id === currentRound.id)
       const eliminatedId = thisRoundFresh?.eliminated_player_id
+
+      // Find impostor
+      const impostorGp = gamePlayers.find(gp => gp.is_impostor)
+      const impostorId = impostorGp?.player_id
 
       let impostorCaught = false
       if (eliminatedId) {
@@ -117,12 +113,37 @@ export function VoteConclusionScreen({
         }
       }
 
+      // ===== SCORING LOGIC =====
+      // Award points for correct votes (voting for the impostor)
+      if (allVotes && impostorId) {
+        for (const vote of allVotes) {
+          if (!vote.is_action_vote && vote.target_player_id === impostorId) {
+            // +10 points for voting correctly on the impostor
+            await incrementPlayerScore(vote.voter_id, 10)
+            console.log(`[Scoring] +10 to ${vote.voter_id} for correct vote`)
+          }
+        }
+      }
+
       if (impostorCaught) {
+        // Players win! Give bonus points to non-impostors
+        for (const gp of gamePlayers) {
+          if (!gp.is_impostor) {
+            // +20 bonus for winning
+            await incrementPlayerScore(gp.player_id, 20)
+            console.log(`[Scoring] +20 to ${gp.player_id} for winning (catching impostor)`)
+          }
+        }
         await endGame(game.id)
-        // Status becomes game_over, UI handles it
       } else {
+        // Impostor survived this round! Give them points
+        if (impostorId) {
+          // +5 points for surviving a round
+          await incrementPlayerScore(impostorId, 5)
+          console.log(`[Scoring] +5 to ${impostorId} for surviving a round as impostor`)
+        }
+
         // Check 1v1 Condition (Impostor Wins)
-        // Count total eliminated
         let totalEliminated = 0
         allRounds.forEach(r => {
           if (r.eliminated_player_id) {
@@ -132,10 +153,18 @@ export function VoteConclusionScreen({
 
         const remainingCount = gamePlayers.length - totalEliminated
         if (remainingCount <= 2) {
-          // Impostor wins
+          // Impostor wins! Give bonus points
+          if (impostorId) {
+            await incrementPlayerScore(impostorId, 20)
+            console.log(`[Scoring] +20 to ${impostorId} for winning as impostor (last survivor)`)
+          }
           await endGame(game.id)
         } else if (thisRoundFresh?.majority_action === 'end_game') {
-          // Majority voted to end game
+          // Majority voted to end game - impostor wins by default
+          if (impostorId) {
+            await incrementPlayerScore(impostorId, 20)
+            console.log(`[Scoring] +20 to ${impostorId} for winning (game ended by vote)`)
+          }
           await endGame(game.id)
         } else {
           // CONTINUE TO NEXT ROUND
@@ -151,6 +180,7 @@ export function VoteConclusionScreen({
       setIsProcessing(false)
     }
   }
+
 
   if (isLoading) {
     return (
