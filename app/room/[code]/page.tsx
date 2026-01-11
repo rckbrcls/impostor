@@ -401,8 +401,6 @@ export default function RoomPage() {
         />
       )}
 
-
-
       {(phase === 'game_over' || phase === 'room_ended') && game && (
         <ResultsScreen
           room={room}

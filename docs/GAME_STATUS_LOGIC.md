@@ -62,8 +62,13 @@ stateDiagram-v2
 
         state "Game: VoteResult" as Game_VoteResult {
             [*] --> ShowResults
-            ShowResults --> Game_Voting: Next Round
-            ShowResults --> Game_GameOver: Impostor Caught OR Impostor Wins OR Host Ends Game
+            ShowResults --> Game_VoteConclusion: Host clicks "Next Round" / "End Game"
+        }
+
+        state "Game: VoteConclusion" as Game_VoteConclusion {
+            [*] --> ShowIndividualFeedback
+            ShowIndividualFeedback --> Game_Voting: Host clicks "Continue" (New Round)
+            ShowIndividualFeedback --> Game_GameOver: Impostor Caught OR Impostor Wins OR Host Ends Game
         }
 
         state "Game: GameOver" as Game_GameOver {
@@ -105,11 +110,18 @@ stateDiagram-v2
 - **Action**: Update `games.status` to `'vote_result'`.
 - **Result**: The `<VotingScreen />` updates to show the results of the round.
 
-### 4. Next Round vs Game Over
+### 4. Vote Conclusion & Next Round
 
 - **From Vote Results**:
-  - **Next Round**: If no one is eliminated or the game continues, the Host (or auto-logic) creates a new round and sets `games.status` back to `'voting'`. **Note**: The `'reveal'` phase is skipped for subsequent rounds.
-  - **Game Over**: If the Impostor is caught, or the Impostor wins (1v1), or the Host manually ends the game, update `games.status` to `'game_over'`.
+  - **Trigger**: Host clicks "Next Round" (or "End Game").
+  - **Action**: Update `games.status` to `'vote_conclusion'`.
+  - **Result**: Top-voted player is eliminated (if applicable) or action recorded. Users see if their vote was correct.
+
+- **From Vote Conclusion**:
+  - **Trigger**: Host clicks "Continue".
+  - **Action**:
+    - **Next Round**: Creates a new round and sets `games.status` back to `'voting'`.
+    - **Game Over**: If the Impostor is caught, or the Impostor wins (1v1), or the Host manually ends the game, update `games.status` to `'game_over'`.
 
 ### 5. Play Again
 
