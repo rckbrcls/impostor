@@ -18,7 +18,7 @@ import {
 import { useState } from 'react'
 
 export function Header() {
-  /* const { t } = useLanguage() */
+  const { t } = useLanguage()
   const [isOpen, setIsOpen] = useState(false)
 
   return (
@@ -29,14 +29,14 @@ export function Header() {
           <SheetTrigger asChild>
             <Button variant="outline" size="icon">
               <Menu className="size-5" />
-              <span className="sr-only">Toggle menu</span>
+              <span className="sr-only">{t('header.toggle_menu')}</span>
             </Button>
           </SheetTrigger>
           <SheetContent side="right">
             <SheetHeader>
-              <SheetTitle>Menu</SheetTitle>
+              <SheetTitle>{t('header.menu')}</SheetTitle>
               <SheetDescription className="sr-only">
-                Navigation menu
+                {t('header.nav_desc')}
               </SheetDescription>
             </SheetHeader>
             <div className="flex flex-col gap-3 p-4">
@@ -48,7 +48,7 @@ export function Header() {
                 >
 
                   <Home className="mr-2 size-4" />
-                  Home
+                  {t('header.home')}
                 </Button>
               </Link>
               <Link passHref href="/create">
@@ -59,7 +59,7 @@ export function Header() {
                 >
 
                   <Joystick className="mr-2 size-4" />
-                  Create New Room
+                  {t('home.create_room')}
                 </Button>
               </Link>
               <Link passHref href="/join">
@@ -70,13 +70,26 @@ export function Header() {
                 >
 
                   <DoorClosed className="mr-2 size-4" />
-                  Join a Room
+                  {t('home.join_room')}
                 </Button>
               </Link>
             </div>
-            <SheetFooter className="flex-row justify-between sm:justify-end gap-2">
-              <LanguageSwitcher />
-              <ModeToggle />
+            <SheetFooter className="mt-auto flex flex-row justify-between items-center gap-2 p-4 pb-8 border-t">
+              <div className="flex gap-2">
+                <LanguageSwitcher />
+                <ModeToggle />
+              </div>
+              <span className="text-xs font-medium mr-auto text-left">
+                {t('footer.made_by')}{' '}
+                <a
+                  href="https://www.polterware.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-bold underline hover:text-accent decoration-2 underline-offset-4 transition-colors"
+                >
+                  polterware
+                </a>
+              </span>
             </SheetFooter>
           </SheetContent>
         </Sheet>
@@ -92,7 +105,7 @@ export function Header() {
             >
 
               <Home className="size-5" />
-              <span >Home</span>
+              <span >{t('header.home')}</span>
             </Button>
 
           </Link>
@@ -103,7 +116,7 @@ export function Header() {
             >
 
               <Joystick className="size-5" />
-              <span >Create New Room</span>
+              <span >{t('home.create_room')}</span>
             </Button>
           </Link>
           <Link passHref href="/join">
@@ -114,7 +127,7 @@ export function Header() {
 
               <DoorClosed className="size-5" />
               <span >
-                Join a Room
+                {t('home.join_room')}
               </span>
             </Button>
           </Link>

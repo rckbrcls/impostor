@@ -10,6 +10,12 @@ export const translations = {
     "footer.made_by": "feito por",
     "language.switch": "Mudar para Inglês",
 
+    // Header
+    "header.menu": "Menu",
+    "header.toggle_menu": "Alternar menu",
+    "header.nav_desc": "Menu de navegação",
+    "header.home": "Início",
+
     // Common
     "common.back": "Voltar",
     "common.or": "ou",
@@ -117,6 +123,12 @@ export const translations = {
   en: {
     "footer.made_by": "made by",
     "language.switch": "Switch to Portuguese",
+
+    // Header
+    "header.menu": "Menu",
+    "header.toggle_menu": "Toggle menu",
+    "header.nav_desc": "Navigation menu",
+    "header.home": "Home",
 
     // Common
     "common.back": "Back",
