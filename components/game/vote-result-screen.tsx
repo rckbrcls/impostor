@@ -12,6 +12,7 @@ import {
   updateRoundMajorityAction,
   getRoundsByGame
 } from '@/lib/supabase'
+import { calculateVotingOutcome } from '@/lib/game-engine'
 import { getVotesByRound } from '@/queries'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -94,54 +95,9 @@ export function VoteResultScreen({
   }, [votes])
 
   const calculateResults = () => {
-    const { action, mostVoted } = determineOutcome()
-    setMostVotedPlayer(mostVoted)
+    const { action, mostVotedPlayer } = calculateVotingOutcome(votes, gamePlayers)
+    setMostVotedPlayer(mostVotedPlayer)
     setDecidedAction(action === 'eliminate' ? 'next_round' : action)
-  }
-
-  const determineOutcome = () => {
-    const playerVotes: Record<string, number> = {}
-    let nextRoundVotes = 0
-    let endGameVotes = 0
-
-    for (const vote of votes) {
-      if (vote.is_action_vote) {
-        if (vote.action_vote === 'next_round') nextRoundVotes++
-        else if (vote.action_vote === 'end_game') endGameVotes++
-      } else if (vote.target_player_id) {
-        playerVotes[vote.target_player_id] = (playerVotes[vote.target_player_id] || 0) + 1
-      }
-    }
-
-    let mostVotedId: string | null = null
-    let maxVotes = 0
-    for (const [playerId, count] of Object.entries(playerVotes)) {
-      if (count > maxVotes) {
-        maxVotes = count
-        mostVotedId = playerId
-      }
-    }
-
-    let mostVoted: { player: Player | null; wasImpostor: boolean } | null = null
-    if (mostVotedId) {
-      const votedGp = gamePlayers.find((gp) => gp.player_id === mostVotedId)
-      mostVoted = {
-        player: votedGp?.player || null,
-        wasImpostor: votedGp?.is_impostor ?? false,
-      }
-    }
-
-    let action: 'next_round' | 'end_game' | 'eliminate'
-
-    if (endGameVotes > maxVotes && endGameVotes > nextRoundVotes) {
-      action = 'end_game'
-    } else if (maxVotes > nextRoundVotes && maxVotes > endGameVotes && mostVotedId) {
-      action = 'eliminate'
-    } else {
-      action = 'next_round'
-    }
-
-    return { action, mostVoted }
   }
 
   const handleProceedToConclusion = async () => {

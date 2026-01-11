@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import useSupabaseBrowser from '@/lib/supabase/browser'
+import { AnimatedCircularProgressBar } from '@/components/ui/animated-circular-progress-bar'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -126,9 +127,17 @@ export function GameScreen({
         </CardHeader>
         <CardContent className="space-y-6 text-center">
           <div className="flex justify-center">
-            <div className="relative">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-            </div>
+            <AnimatedCircularProgressBar
+              max={totalCount}
+              min={0}
+              value={readyCount}
+              gaugePrimaryColor="var(--primary)"
+              gaugeSecondaryColor="var(--muted)"
+            >
+              <span className="text-xl font-bold">
+                {totalCount}/{readyCount}
+              </span>
+            </AnimatedCircularProgressBar>
           </div>
           <p className="text-lg font-medium">
             {readyCount} / {totalCount} {t('game.players_ready') || 'players ready'}

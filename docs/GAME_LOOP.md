@@ -146,6 +146,15 @@ Abaixo detalhamos cada etapa do fluxo do usuário, conectando a **Fase Visual (`
     - Muda status do jogo para `vote_conclusion`.
 - **Transição**: Todos vão para `vote_conclusion`.
 
+#### Critérios de Desempate
+
+O sistema segue uma hierarquia estrita para resolver empates na contagem de votos:
+
+1.  **Fim de Jogo (`end_game`)**: Tem a prioridade máxima. Se empatar com qualquer outra opção (jogadores ou pular), o jogo termina.
+2.  **Próxima Rodada (`next_round` / Pular)**: Tem prioridade sobre eliminação de jogadores. Se empatar com o mais votado, a rodada é pulada.
+3.  **Empate entre Jogadores**: Se dois ou mais jogadores empatarem em primeiro lugar, **ninguém é eliminado** (o jogo segue para a próxima rodada como se tivessem pulado).
+4.  **Eliminação**: Só ocorre se um único jogador tiver a maioria absoluta dos votos (mais que qualquer outro jogador e mais que as ações).
+
 ### 6. Conclusão do Voto (Vote Conclusion)
 
 - **Fase**: `vote_conclusion`
