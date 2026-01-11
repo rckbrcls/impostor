@@ -136,6 +136,28 @@ export default function RoomPage() {
     }
   }, [roomError, router])
 
+  // Cleanup player when browser/tab is closed
+  useEffect(() => {
+    if (!currentPlayer || !room?.id) return
+
+    const handleBeforeUnload = () => {
+      // Use sendBeacon for reliable cleanup on page close
+      navigator.sendBeacon(
+        '/api/leave-room',
+        JSON.stringify({
+          playerId: currentPlayer.id,
+          roomId: room.id,
+        })
+      )
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  }, [currentPlayer, room?.id])
+
   // Determine phase based on room status and player state
   useEffect(() => {
     console.log('[DEBUG RoomPage] Phase effect running:', { room, currentPlayer })

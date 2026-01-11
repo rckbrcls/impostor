@@ -18,6 +18,7 @@ export {
   updateRoomEnded,
   resetRoomToWaiting,
   updateRoomHost,
+  deleteRoom,
   subscribeToRoom,
 } from "./rooms";
 

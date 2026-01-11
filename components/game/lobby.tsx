@@ -120,7 +120,22 @@ export function Lobby({ room, players, onGameStart }: LobbyProps) {
         }
       }
 
+      // Delete the player
       await supabase.from('players').delete().eq('id', myPlayer.id)
+
+      // Check if room is now empty and should be deleted
+      const { count } = await supabase
+        .from('players')
+        .select('*', { count: 'exact', head: true })
+        .eq('room_id', room.id)
+
+      if (count === 0) {
+        // Delete votes first (FK constraint)
+        await supabase.from('votes').delete().eq('room_id', room.id)
+        // Delete the empty room
+        await supabase.from('rooms').delete().eq('id', room.id)
+      }
+
       router.push('/')
     } catch (error) {
       console.error('Erro ao sair da sala:', error)

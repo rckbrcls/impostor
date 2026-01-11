@@ -120,6 +120,19 @@ export async function updateRoomHost(roomId: string, hostId: string) {
   return { error };
 }
 
+/**
+ * Delete a room and all associated data (players, votes)
+ */
+export async function deleteRoom(roomId: string) {
+  // Delete votes first (FK constraint)
+  await supabase.from("votes").delete().eq("room_id", roomId);
+  // Delete players
+  await supabase.from("players").delete().eq("room_id", roomId);
+  // Delete the room
+  const { error } = await supabase.from("rooms").delete().eq("id", roomId);
+  return { error };
+}
+
 // ============ Realtime Subscriptions ============
 
 /**

@@ -23,9 +23,26 @@ export async function addPlayer(
 
 /**
  * Remove a player from a room
+ * If the room becomes empty, delete the room and all associated data
  */
-export async function removePlayer(playerId: string) {
+export async function removePlayer(playerId: string, roomId: string) {
   const { error } = await supabase.from("players").delete().eq("id", playerId);
+
+  if (!error) {
+    // Check if room is now empty
+    const { count } = await supabase
+      .from("players")
+      .select("*", { count: "exact", head: true })
+      .eq("room_id", roomId);
+
+    if (count === 0) {
+      // Delete votes first (FK constraint)
+      await supabase.from("votes").delete().eq("room_id", roomId);
+      // Delete the empty room
+      await supabase.from("rooms").delete().eq("id", roomId);
+    }
+  }
+
   return { error };
 }
 
