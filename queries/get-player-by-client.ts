@@ -13,8 +13,6 @@ export function getPlayerByClient(
       room_id,
       client_id,
       name,
-      is_impostor,
-      is_eliminated,
       score,
       joined_at
     `
@@ -22,5 +20,5 @@ export function getPlayerByClient(
     .eq("room_id", roomId)
     .eq("client_id", clientId)
     .throwOnError()
-    .single();
+    .maybeSingle();
 }

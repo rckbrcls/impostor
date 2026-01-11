@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { useLanguage } from '@/components/language-context';
+import { useLanguage } from '@/stores/language-store';
 import { Languages } from 'lucide-react';
 
 export function LanguageSwitcher() {

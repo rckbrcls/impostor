@@ -1,0 +1,39 @@
+import { NextRequest, NextResponse } from "next/server";
+import useSupabaseServer from "@/lib/supabase/server";
+
+export async function POST(request: NextRequest) {
+  try {
+    const { playerId, roomId } = await request.json();
+
+    if (!playerId || !roomId) {
+      return NextResponse.json(
+        { error: "Missing playerId or roomId" },
+        { status: 400 }
+      );
+    }
+
+    const supabase = await useSupabaseServer();
+
+    // Delete player
+    await supabase.from("players").delete().eq("id", playerId);
+
+    // Check if room is empty
+    const { count } = await supabase
+      .from("players")
+      .select("*", { count: "exact", head: true })
+      .eq("room_id", roomId);
+
+    if (count === 0) {
+      // Cascade delete will handle games, rounds, votes, game_players
+      await supabase.from("rooms").delete().eq("id", roomId);
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("[leave-room API] Error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}

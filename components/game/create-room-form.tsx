@@ -3,42 +3,47 @@
 import { useState } from 'react'
 import copy from 'copy-to-clipboard'
 import { useRouter } from 'next/navigation'
+import useSupabaseBrowser from '@/lib/supabase/browser'
 import { generateRoomCode, getClientId } from '@/lib/game-utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Copy, Check, Users } from 'lucide-react'
-import { useLanguage } from '@/components/language-context'
-import { useCreateRoom, useAddPlayer } from '@/queries'
+import { useLanguage } from '@/stores/language-store'
+import { ConfettiButton } from '../ui/confetti'
 
 export function CreateRoomForm() {
   const router = useRouter()
+  const supabase = useSupabaseBrowser()
   const [roomCode, setRoomCode] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [hostName, setHostName] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
   const { t } = useLanguage()
-
-  const createRoomMutation = useCreateRoom()
-  const addPlayerMutation = useAddPlayer()
-
-  const isLoading = createRoomMutation.isPending || addPlayerMutation.isPending
 
   const handleCreateRoom = async () => {
     if (!hostName.trim()) return
 
+    setIsLoading(true)
     try {
       const code = generateRoomCode()
       const hostId = getClientId()
 
-      // Create room and get room ID
-      const roomData = await createRoomMutation.mutateAsync({ code, hostId })
+      // Create room
+      const { data: roomData, error: roomError } = await supabase
+        .from('rooms')
+        .insert({ code, host_id: hostId })
+        .select('id')
+        .single()
+
+      if (roomError) throw roomError
 
       // Host also joins as player
       if (roomData?.id) {
-        await addPlayerMutation.mutateAsync({
-          roomId: roomData.id,
-          clientId: hostId,
+        await supabase.from('players').insert({
+          room_id: roomData.id,
+          client_id: hostId,
           name: hostName.trim(),
         })
       }
@@ -46,6 +51,8 @@ export function CreateRoomForm() {
       setRoomCode(code)
     } catch (error) {
       console.error('Erro ao criar sala:', error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -104,14 +111,13 @@ export function CreateRoomForm() {
             onChange={(e) => setHostName(e.target.value)}
           />
         </div>
-        <Button
-          className="w-full"
-          size="lg"
+        <ConfettiButton
+          className="w-full size-lg"
           onClick={handleCreateRoom}
           disabled={isLoading || !hostName.trim()}
         >
           {isLoading ? t('create_room.button_creating') : t('create_room.button_create')}
-        </Button>
+        </ConfettiButton>
       </CardContent>
     </Card>
   )

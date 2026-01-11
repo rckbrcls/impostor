@@ -7,13 +7,16 @@ import type { Room } from "./types";
  * Create a new room
  */
 export async function createRoom(code: string, hostId: string) {
-  const { error } = await supabase.from("rooms").insert({
-    code,
-    host_id: hostId,
-    status: "waiting",
-    round: 0,
-  });
-  return { error };
+  const { data, error } = await supabase
+    .from("rooms")
+    .insert({
+      code,
+      host_id: hostId,
+      status: "waiting",
+    })
+    .select()
+    .single();
+  return { data: data as Room | null, error };
 }
 
 /**
@@ -41,70 +44,37 @@ export async function getRoomIdByCode(code: string) {
 }
 
 /**
- * Update room status
+ * Update room host
+ */
+export async function updateRoomHost(roomId: string, hostId: string) {
+  const { error } = await supabase
+    .from("rooms")
+    .update({ host_id: hostId })
+    .eq("id", roomId);
+  return { error };
+}
+
+/**
+ * Delete a room and all associated data
+ */
+export async function deleteRoom(roomId: string) {
+  // Cascade delete will handle games, rounds, votes, game_players
+  // Delete players
+  await supabase.from("players").delete().eq("room_id", roomId);
+  // Delete the room
+  const { error } = await supabase.from("rooms").delete().eq("id", roomId);
+  return { error };
+}
+
+// ============ Realtime Subscriptions ============
+
+/**
+ * Update room status (forcing recompile)
  */
 export async function updateRoomStatus(roomId: string, status: Room["status"]) {
   const { error } = await supabase
     .from("rooms")
     .update({ status })
-    .eq("id", roomId);
-  return { error };
-}
-
-/**
- * Update room for game start
- */
-export async function updateRoomForGameStart(
-  roomId: string,
-  round: number,
-  word: string
-) {
-  const { error } = await supabase
-    .from("rooms")
-    .update({
-      status: "playing" as const,
-      round,
-      word,
-    })
-    .eq("id", roomId);
-  return { error };
-}
-
-/**
- * Update room for next round
- */
-export async function updateRoomForNextRound(roomId: string, round: number) {
-  const { error } = await supabase
-    .from("rooms")
-    .update({
-      status: "playing" as const,
-      round,
-    })
-    .eq("id", roomId);
-  return { error };
-}
-
-/**
- * Update room for ended state
- */
-export async function updateRoomEnded(roomId: string) {
-  const { error } = await supabase
-    .from("rooms")
-    .update({ status: "ended" as const })
-    .eq("id", roomId);
-  return { error };
-}
-
-/**
- * Reset room to waiting state for play again
- */
-export async function resetRoomToWaiting(roomId: string) {
-  const { error } = await supabase
-    .from("rooms")
-    .update({
-      status: "waiting" as const,
-      word: null,
-    })
     .eq("id", roomId);
   return { error };
 }

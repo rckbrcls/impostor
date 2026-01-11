@@ -4,7 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { useLanguage } from '@/components/language-context'
+import { useLanguage } from '@/stores/language-store'
 
 export default function Home() {
   const { t } = useLanguage()
@@ -16,7 +16,7 @@ export default function Home() {
         <div className="text-center space-y-2">
           <div className="flex flex-col items-center justify-center mb-6">
             <Image
-              src="/assets/Group.png"
+              src="/assets/impostor.png"
               alt={t('home.title')}
               width={200}
               height={200}

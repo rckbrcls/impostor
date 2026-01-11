@@ -3,13 +3,13 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import useSupabaseBrowser from '@/lib/supabase/browser'
-import { getRoomByCode, getPlayerByClient, useAddPlayer } from '@/queries'
+import { getRoomByCode, getPlayerByClient } from '@/queries'
 import { getClientId } from '@/lib/game-utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { LogIn } from 'lucide-react'
-import { useLanguage } from '@/components/language-context'
+import { useLanguage } from '@/stores/language-store'
 
 interface JoinRoomFormProps {
   initialCode?: string
@@ -24,52 +24,66 @@ export function JoinRoomForm({ initialCode = '' }: JoinRoomFormProps) {
   const [error, setError] = useState('')
   const { t } = useLanguage()
 
-  const addPlayerMutation = useAddPlayer()
-
   const joinRoom = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!code.trim() || !name.trim()) return
+    console.log('[DEBUG JoinRoom] Form submitted', { code, name })
+    if (!code.trim() || !name.trim()) {
+      console.log('[DEBUG JoinRoom] Empty code or name, returning')
+      return
+    }
 
     setIsLoading(true)
     setError('')
 
     try {
       // Fetch room by code using query function
+      console.log('[DEBUG JoinRoom] Fetching room by code:', code)
       const { data: room, error: roomError } = await getRoomByCode(supabase, code)
+      console.log('[DEBUG JoinRoom] Room fetch result:', { room, roomError })
 
       if (roomError || !room) {
+        console.log('[DEBUG JoinRoom] Room not found or error')
         setError(t('join_room.error_not_found'))
         return
       }
 
       if (room.status !== 'waiting') {
+        console.log('[DEBUG JoinRoom] Room not in waiting status:', room.status)
         setError(t('join_room.error_started'))
         return
       }
 
       const clientId = getClientId()
+      console.log('[DEBUG JoinRoom] Client ID:', clientId)
 
       // Check if already in room
+      console.log('[DEBUG JoinRoom] Checking for existing player...')
       const { data: existingPlayer } = await getPlayerByClient(supabase, room.id, clientId)
+      console.log('[DEBUG JoinRoom] Existing player check:', existingPlayer)
 
       if (existingPlayer) {
         // Already in room, just redirect
+        console.log('[DEBUG JoinRoom] Player already exists, redirecting...')
         router.push(`/room/${code.toUpperCase()}`)
         return
       }
 
       // Join the room
-      await addPlayerMutation.mutateAsync({
-        roomId: room.id,
-        clientId,
+      console.log('[DEBUG JoinRoom] Adding player to room...', { roomId: room.id, clientId, name: name.trim() })
+      await supabase.from('players').insert({
+        room_id: room.id,
+        client_id: clientId,
         name: name.trim(),
       })
+      console.log('[DEBUG JoinRoom] Player added successfully')
 
+      console.log('[DEBUG JoinRoom] Redirecting to room:', `/room/${code.toUpperCase()}`)
       router.push(`/room/${code.toUpperCase()}`)
     } catch (err) {
-      console.error('Erro ao entrar na sala:', err)
+      console.error('[DEBUG JoinRoom] Error:', err)
       setError(t('join_room.error_generic'))
     } finally {
+      console.log('[DEBUG JoinRoom] Finally block, setting isLoading to false')
       setIsLoading(false)
     }
   }

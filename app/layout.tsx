@@ -2,11 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter, Fredoka } from "next/font/google";
 import "./globals.css";
 
-import { LanguageProvider } from "@/components/language-context";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { ThemeProvider } from "@/components/theme-provider";
-import { ReactQueryClientProvider } from "@/components/ReactQueryClientProvider";
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -27,7 +25,7 @@ const fredoka = Fredoka({
 });
 
 export const metadata: Metadata = {
-  title: "Impostor",
+  title: "Duplizen",
   description: "Find the impostor among your friends!",
 };
 
@@ -37,27 +35,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ReactQueryClientProvider>
-      <html lang="en" suppressHydrationWarning className={inter.variable}>
-        <body
-          className={`${geistSans.variable} ${geistMono.variable} ${fredoka.variable} antialiased h-[100svh] overflow-hidden flex flex-col`}
+    <html lang="en" suppressHydrationWarning className={inter.variable}>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} ${fredoka.variable} antialiased h-[100svh] overflow-hidden flex flex-col`}
+      >
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
         >
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <LanguageProvider>
-              <Header />
-              <main className="flex-1 w-full overflow-y-auto">
-                {children}
-              </main>
-              <Footer />
-            </LanguageProvider>
-          </ThemeProvider>
-        </body>
-      </html>
-    </ReactQueryClientProvider>
+          <Header />
+          <main className="flex-1 w-full">
+            {children}
+          </main>
+          <Footer />
+        </ThemeProvider>
+      </body>
+    </html>
   );
 }

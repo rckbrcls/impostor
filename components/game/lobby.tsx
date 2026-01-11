@@ -2,19 +2,23 @@
 
 import { useEffect, useState } from 'react'
 import copy from 'copy-to-clipboard'
-import { type Player, type Room } from '@/lib/supabase'
+import { useRouter } from 'next/navigation'
+import useSupabaseBrowser from '@/lib/supabase/browser'
+import {
+  type Player,
+  type Room,
+  createGame,
+  createGamePlayers,
+  setImpostor,
+  createRound,
+  updateRoomStatus
+} from '@/lib/supabase'
 import { getClientId } from '@/lib/game-utils'
 import { getRandomWord } from '@/lib/words'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Copy, Check, Play, Users } from 'lucide-react'
-import { useLanguage } from '@/components/language-context'
-import {
-  useDeleteVotesByRoom,
-  useResetPlayersForRound,
-  useSetImpostor,
-  useStartGame,
-} from '@/queries'
+import { Copy, Check, Play, Users, LogOut } from 'lucide-react'
+import { useLanguage } from '@/stores/language-store'
 
 interface LobbyProps {
   room: Room
@@ -24,44 +28,16 @@ interface LobbyProps {
 
 export function Lobby({ room, players, onGameStart }: LobbyProps) {
   const [copied, setCopied] = useState(false)
+  const [isStarting, setIsStarting] = useState(false)
+  const [isLeaving, setIsLeaving] = useState(false)
+  const router = useRouter()
+  const supabase = useSupabaseBrowser()
   const clientId = getClientId()
   const isHost = room.host_id === clientId
   const isDev = process.env.NODE_ENV === 'development'
   const minPlayers = isDev ? 1 : 3
   const canStart = players.length >= minPlayers
   const { t } = useLanguage()
-
-  const deleteVotesMutation = useDeleteVotesByRoom()
-  const resetPlayersMutation = useResetPlayersForRound()
-  const setImpostorMutation = useSetImpostor()
-  const startGameMutation = useStartGame()
-
-  const isStarting =
-    deleteVotesMutation.isPending ||
-    resetPlayersMutation.isPending ||
-    setImpostorMutation.isPending ||
-    startGameMutation.isPending
-
-  // Clean old votes when entering lobby
-  useEffect(() => {
-    const cleanVotes = async () => {
-      const myPlayer = players.find((p) => p.client_id === clientId)
-      if (!myPlayer) return
-
-      try {
-        console.log('[Lobby] Cleaning votes for player:', myPlayer.name)
-        if (isHost) {
-          await deleteVotesMutation.mutateAsync(room.id)
-        }
-        console.log('[Lobby] Cleanup success')
-      } catch (err) {
-        console.error('[Lobby] Error cleaning votes:', err)
-      }
-    }
-
-    cleanVotes()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [room.id, isHost])
 
   const copyLink = () => {
     const link = `${window.location.origin}/room/${room.code}`
@@ -73,31 +49,89 @@ export function Lobby({ room, players, onGameStart }: LobbyProps) {
   const startGame = async () => {
     if (!canStart || !isHost) return
 
+    setIsStarting(true)
     try {
-      // Force cleanup: Host cleans all votes before starting
-      console.log('[Lobby] Host starting game, force cleaning all votes...')
-      await deleteVotesMutation.mutateAsync(room.id)
+      // 1. Create a new game
+      console.log('Creating game...')
+      const word = getRandomWord()
+      const { data: newGame, error: gameError } = await createGame(room.id, word)
 
-      // Pick impostor
+      if (gameError || !newGame) {
+        console.error('Error creating game:', gameError)
+        return
+      }
+      console.log('Game created:', newGame)
+
+      // 2. Create game_players for all players
+      const playerIds = players.map(p => p.id)
+      const { error: gpError } = await createGamePlayers(newGame.id, playerIds)
+
+      if (gpError) {
+        console.error('Error creating game players:', gpError)
+        return
+      }
+
+      // 3. Pick random impostor
       const impostorIndex = Math.floor(Math.random() * players.length)
       const impostorId = players[impostorIndex].id
+      await setImpostor(newGame.id, impostorId)
 
-      // Reset all players
-      await resetPlayersMutation.mutateAsync(room.id)
+      // 4. Create first round
+      await createRound(newGame.id, 1)
 
-      // Mark the impostor
-      await setImpostorMutation.mutateAsync({ playerId: impostorId, roomId: room.id })
-
-      // Update room
-      await startGameMutation.mutateAsync({
-        roomId: room.id,
-        round: room.round + 1,
-        word: getRandomWord(),
-      })
+      // 5. Update room status to 'playing'
+      console.log('Updating room status to playing...')
+      const { error: updateError } = await updateRoomStatus(room.id, 'playing')
+      if (updateError) {
+        console.error('Error updating room status:', updateError)
+      } else {
+        console.log('Room status updated')
+      }
 
       onGameStart()
     } catch (error) {
       console.error('Erro ao iniciar jogo:', error)
+    } finally {
+      setIsStarting(false)
+    }
+  }
+
+  const handleLeave = async () => {
+    const myPlayer = players.find((p) => p.client_id === clientId)
+    if (!myPlayer) return
+
+    setIsLeaving(true)
+    try {
+      // Se for o host, transferir para o próximo jogador mais antigo antes de sair
+      if (isHost && players.length > 1) {
+        const nextHost = players.find((p) => p.client_id !== clientId)
+        if (nextHost) {
+          await supabase
+            .from('rooms')
+            .update({ host_id: nextHost.client_id })
+            .eq('id', room.id)
+        }
+      }
+
+      // Delete the player
+      await supabase.from('players').delete().eq('id', myPlayer.id)
+
+      // Check if room is now empty and should be deleted
+      const { count } = await supabase
+        .from('players')
+        .select('*', { count: 'exact', head: true })
+        .eq('room_id', room.id)
+
+      if (count === 0) {
+        // Cascade will handle games, rounds, votes
+        await supabase.from('rooms').delete().eq('id', room.id)
+      }
+
+      router.push('/')
+    } catch (error) {
+      console.error('Erro ao sair da sala:', error)
+    } finally {
+      setIsLeaving(false)
     }
   }
 
@@ -161,6 +195,17 @@ export function Lobby({ room, players, onGameStart }: LobbyProps) {
             {t('lobby.waiting_host')}
           </p>
         )}
+
+        {/* Leave Button */}
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={handleLeave}
+          disabled={isLeaving}
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          {isLeaving ? t('lobby.leaving') : t('lobby.leave')}
+        </Button>
       </CardContent>
     </Card>
   )

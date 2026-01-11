@@ -1,6 +1,6 @@
 'use client';
 
-import { useLanguage } from '@/components/language-context';
+import { useLanguage } from '@/stores/language-store';
 
 export function Footer() {
   const { t } = useLanguage();
@@ -9,12 +9,12 @@ export function Footer() {
     <footer className="py-4 text-center text-sm border-t-2 border-black dark:border-white bg-white dark:bg-zinc-950">
       {t('footer.made_by')}{' '}
       <a
-        href="https://www.erickbarcelos.com"
+        href="https://www.polterware.com"
         target="_blank"
         rel="noopener noreferrer"
-        className="font-bold hover:underline decoration-2 underline-offset-4"
+        className="font-bold underline hover:text-accent decoration-2 underline-offset-4 transition-colors"
       >
-        erick barcelos
+        polterware
       </a>
     </footer>
   );
