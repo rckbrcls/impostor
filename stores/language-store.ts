@@ -272,6 +272,3 @@ export const useLanguage = () => {
 
   return store;
 };
-
-// Deprecate direct usage of the base store if possible, or alias it if needed for non-react contexts (though this is a store file)
-// For now, we only export useLanguage as that's what the app uses.
