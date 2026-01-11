@@ -18,11 +18,13 @@ import {
 import { Lobby } from '@/components/game/lobby'
 import { GameScreen } from '@/components/game/game-screen'
 import { VotingScreen } from '@/components/game/voting-screen'
+import { VoteConclusionScreen } from '@/components/game/vote-conclusion-screen'
 import { ResultsScreen } from '@/components/game/results-screen'
+import { SessionEndedScreen } from '@/components/game/session-ended-screen'
 import { JoinRoomForm } from '@/components/game/join-room-form'
 import { Skeleton } from '@/components/ui/skeleton'
 
-type GamePhase = 'joining' | 'lobby' | 'reveal' | 'voting' | 'vote_result' | 'game_over' | 'room_ended'
+type GamePhase = 'joining' | 'lobby' | 'reveal' | 'voting' | 'vote_conclusion' | 'vote_result' | 'game_over' | 'room_ended'
 
 export default function RoomPage() {
   const params = useParams()
@@ -321,6 +323,7 @@ export default function RoomPage() {
         }
       }
       else if (game.status === 'voting') newPhase = 'voting'
+      else if (game.status === 'vote_conclusion') newPhase = 'vote_conclusion'
       else if (game.status === 'vote_result') newPhase = 'vote_result'
       else newPhase = 'lobby'
     }
@@ -388,13 +391,31 @@ export default function RoomPage() {
         />
       )}
 
-      {(phase === 'game_over' || phase === 'room_ended') && game && (
+      {phase === 'vote_conclusion' && game && currentRound && (
+        <VoteConclusionScreen
+          room={room}
+          game={game}
+          currentRound={currentRound}
+          gamePlayers={gamePlayers}
+          currentPlayer={currentPlayer}
+          isHost={isHost}
+        />
+      )}
+
+      {phase === 'game_over' && game && (
         <ResultsScreen
           room={room}
           game={game}
           gamePlayers={gamePlayers}
           players={players}
           onPlayAgain={fetchGameData}
+        />
+      )}
+
+      {phase === 'room_ended' && (
+        <SessionEndedScreen
+          room={room}
+          players={players}
         />
       )}
     </main>

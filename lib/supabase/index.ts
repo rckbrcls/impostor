@@ -73,3 +73,10 @@ export {
   calculateVoteResults,
   subscribeToVotes,
 } from "./votes";
+
+// Session stats operations
+export {
+  getSessionStats,
+  type PlayerStats,
+  type SessionStats,
+} from "./session-stats";

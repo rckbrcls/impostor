@@ -23,7 +23,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { SelectionGroup, SelectionItem } from '@/components/ui/selection-card'
-import { Check, User, Flag, Loader2, Play } from 'lucide-react'
+import { Check, User, Flag, Loader2, Play, UserX } from 'lucide-react'
 import { useLanguage } from '@/stores/language-store'
 
 interface VotingScreenProps {
@@ -60,6 +60,9 @@ export function VotingScreen({
   const [mostVotedPlayer, setMostVotedPlayer] = useState<{ player: Player | null; wasImpostor: boolean } | null>(null)
   const [decidedAction, setDecidedAction] = useState<'next_round' | 'end_game' | null>(null)
 
+  // Track eliminated players
+  const [eliminatedPlayerIds, setEliminatedPlayerIds] = useState<Set<string>>(new Set())
+
   const { t } = useLanguage()
 
   const revealResult = game.status === 'vote_result'
@@ -67,8 +70,27 @@ export function VotingScreen({
   // Find impostor
   const impostorGamePlayer = gamePlayers.find(gp => gp.is_impostor)
 
-  // Total active players (all game players for now - elimination tracking would need more work)
-  const totalActivePlayers = gamePlayers.length
+  // Fetch eliminated players
+  useEffect(() => {
+    async function fetchEliminatedPlayers() {
+      const { data: rounds } = await getRoundsByGame(game.id)
+      const eliminated = new Set<string>()
+      rounds.forEach((r) => {
+        if (r.eliminated_player_id) {
+          eliminated.add(r.eliminated_player_id)
+        }
+      })
+      setEliminatedPlayerIds(eliminated)
+    }
+
+    fetchEliminatedPlayers()
+  }, [game.id, currentRound.id])
+
+  // Total active players (all game players minus eliminated ones)
+  const totalActivePlayers = gamePlayers.length - eliminatedPlayerIds.size
+
+  // Am I eliminated?
+  const amIEliminated = currentPlayer ? eliminatedPlayerIds.has(currentPlayer.id) : false
 
   // Track the current round ID to prevent stale updates
   const currentRoundIdRef = useRef(currentRound?.id)
@@ -187,9 +209,9 @@ export function VotingScreen({
     return votes.filter((v) => v.is_action_vote && v.action_vote === action).length
   }
 
-  // Players that haven't voted yet
+  // Players that haven't voted yet (and are active)
   const pendingVoters = gamePlayers.filter(
-    (gp) => !votes.some((v) => v.voter_id === gp.player_id)
+    (gp) => !eliminatedPlayerIds.has(gp.player_id) && !votes.some((v) => v.voter_id === gp.player_id)
   )
 
   const doSubmitVote = async () => {
@@ -268,7 +290,7 @@ export function VotingScreen({
   const processVotingResults = async () => {
     setIsProcessing(true)
 
-    // We update status to vote_result so everyone sees it
+    // We update status to vote_result so everyone sees group results first
     await updateGameStatus(game.id, 'vote_result')
 
     // We can also compute locally to decided elimination right away?
@@ -278,63 +300,34 @@ export function VotingScreen({
     setIsProcessing(false)
   }
 
-  const startNextRound = async () => {
+  const handleProceedToConclusion = async () => {
     try {
+      // Logic to determine elimination or action
       // If someone was voted and was the impostor, game ends (players win)
-      if (mostVotedPlayer?.player && mostVotedPlayer.wasImpostor) {
+      // BUT we want to show the conclusion screen first? No, if game ends, we show results.
+      // Actually, if Impostor is caught, we can go straight to Game Over OR show Conclusion (You voted X, X was Impostor) then Game Over.
+      // Let's stick to the flow: Result -> Conclusion -> [Next Round OR Game Over]
+
+      // 1. Perform elimination / action updates in DB
+      if (mostVotedPlayer?.player) {
         await updateRoundEliminated(currentRound.id, mostVotedPlayer.player.id)
-        await endGame(game.id)
-        onRoundEnd()
-        return
-      }
-
-      // If someone was voted and wasn't the impostor
-      if (mostVotedPlayer?.player && !mostVotedPlayer.wasImpostor) {
-        await updateRoundEliminated(currentRound.id, mostVotedPlayer.player.id)
-
-        // Check if only 2 players remain (impostor wins)
-        // We must check ALL eliminations from ALL rounds
-        const { data: allRounds } = await getRoundsByGame(game.id)
-
-        // Count confirmed eliminations (including the one we just did, IF it's reflected in DB distinct from this flow,
-        // but 'updateRoundEliminated' updates THIS round row. 'allRounds' might or might not include it yet depending on consistency.
-        // To be safe, we can look at the data returned or just count locally.)
-
-        let totalEliminated = 0
-        // Add previous rounds eliminations
-        allRounds.forEach(r => {
-          if (r.id !== currentRound.id && r.eliminated_player_id) {
-            totalEliminated++
-          }
-        })
-        // Add current elimination
-        totalEliminated++
-
-        const remainingCount = gamePlayers.length - totalEliminated
-
-        console.log('Players remaining:', remainingCount, 'Total:', gamePlayers.length, 'Eliminated:', totalEliminated)
-
-        if (remainingCount <= 2) {
-          await endGame(game.id)
-          onRoundEnd()
-          return
-        }
+      } else if (decidedAction === 'end_game') {
+        await updateRoundMajorityAction(currentRound.id, 'end_game')
+        // If majority wants to end game, we might just go to game over?
+        // Let's defer "Game Over" trigger to the Next Step (Conclusion Screen 'Continue')
+        // OR we can trigger it now if strictly 'action' vote.
+        // But for consistency let's go to Conclusion.
       } else {
-        // No player eliminated, just action vote
         await updateRoundMajorityAction(currentRound.id, 'next_round')
       }
 
-      // Create next round
-      const nextRoundNumber = game.current_round + 1
-      await createRound(game.id, nextRoundNumber)
-
-      // Update game with new round number and Back to VOTING status (Skip reveal)
-      await updateGameRound(game.id, nextRoundNumber)
-      await updateGameStatus(game.id, 'voting')
+      // 2. Transition status to 'vote_conclusion'
+      // The VoteConclusionScreen will then handle the "Next Round" or "Game Over" logic when Host clicks Continue.
+      await updateGameStatus(game.id, 'vote_conclusion')
 
       onRoundEnd()
     } catch (error) {
-      console.error('Erro ao iniciar próxima rodada:', error)
+      console.error('Erro ao avançar para conclusão:', error)
     }
   }
 
@@ -354,6 +347,9 @@ export function VotingScreen({
   const isPlayerSelected = (playerId: string) => {
     return myChoice?.type === 'player' && myChoice.playerId === playerId
   }
+
+  // Active players for the list (exclude eliminated)
+  const activeGamePlayers = gamePlayers.filter(gp => !eliminatedPlayerIds.has(gp.player_id))
 
   return (
     <Card className="w-full max-w-md mx-auto">
@@ -389,7 +385,7 @@ export function VotingScreen({
             ) : decidedAction && isHost ? (
               <div className="flex flex-col gap-3">
                 {decidedAction === 'next_round' ? (
-                  <Button onClick={startNextRound} className="w-full bg-green-600 hover:bg-green-700">
+                  <Button onClick={handleProceedToConclusion} className="w-full bg-green-600 hover:bg-green-700">
                     <Play className="mr-2 size-4" />
                     {t('voting.next_round')}
                   </Button>
@@ -412,95 +408,105 @@ export function VotingScreen({
         {/* Voting */}
         {!revealResult && (
           <>
-            <div className="space-y-3">
-              <p className="text-sm font-medium text-center">{t('voting.choose_option')}</p>
-
-              {/* Vote for player */}
-              <div className="space-y-2">
-                <p className="text-xs text-muted-foreground flex items-center gap-2">
-                  {t('voting.vote_impostor_label')}
+            {amIEliminated ? (
+              <div className="p-8 text-center bg-red-500/10 border-2 border-red-500/50 rounded-lg">
+                <UserX className="mx-auto h-12 w-12 text-red-500/50 mb-4" />
+                <h3 className="text-lg font-bold text-red-500 mb-2">{t('game.eliminated')}</h3>
+                <p className="text-sm text-muted-foreground">
+                  You can watch the voting process but cannot participate.
                 </p>
-                <SelectionGroup>
-                  {gamePlayers.map((gp) => (
-                    <SelectionItem
-                      key={gp.id}
-                      checked={isPlayerSelected(gp.player_id)}
-                      onChange={() => !hasVoted && setMyChoice({ type: 'player', playerId: gp.player_id })}
-                      disabled={hasVoted}
-                      className="has-[:checked]:bg-primary/20 has-[:checked]:border-primary/50 dark:has-[:checked]:bg-primary/40"
-                      title={
-                        <span className="flex items-center gap-2">
-                          <User className="size-4" />
-                          {gp.player?.name ?? 'Unknown'}
-                          {gp.player_id === currentPlayer?.id && (
-                            <span className="text-xs text-muted-foreground font-normal">({t('common.you')})</span>
-                          )}
-                        </span>
-                      }
-                      description={
-                        votes.length > 0 ? (
-                          <span className="flex items-center gap-1 text-xs">
-                            {t('voting.vote_count', getPlayerVoteCount(gp.player_id), getPlayerVoteCount(gp.player_id) !== 1 ? 's' : '')}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm font-medium text-center">{t('voting.choose_option')}</p>
+
+                {/* Vote for player */}
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground flex items-center gap-2">
+                    {t('voting.vote_impostor_label')}
+                  </p>
+                  <SelectionGroup>
+                    {activeGamePlayers.map((gp) => (
+                      <SelectionItem
+                        key={gp.id}
+                        checked={isPlayerSelected(gp.player_id)}
+                        onChange={() => !hasVoted && setMyChoice({ type: 'player', playerId: gp.player_id })}
+                        disabled={hasVoted}
+                        className="has-[:checked]:bg-primary/20 has-[:checked]:border-primary/50 dark:has-[:checked]:bg-primary/40"
+                        title={
+                          <span className="flex items-center gap-2">
+                            <User className="size-4" />
+                            {gp.player?.name ?? 'Unknown'}
+                            {gp.player_id === currentPlayer?.id && (
+                              <span className="text-xs text-muted-foreground font-normal">({t('common.you')})</span>
+                            )}
                           </span>
-                        ) : undefined
-                      }
-                    />
-                  ))}
+                        }
+                        description={
+                          votes.length > 0 ? (
+                            <span className="flex items-center gap-1 text-xs">
+                              {t('voting.vote_count', getPlayerVoteCount(gp.player_id), getPlayerVoteCount(gp.player_id) !== 1 ? 's' : '')}
+                            </span>
+                          ) : undefined
+                        }
+                      />
+                    ))}
+                  </SelectionGroup>
+                </div>
+
+                {/* Divider */}
+                <div className="relative py-2">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-black dark:border-white" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-white dark:bg-black px-2 text-muted-foreground border-2 border-black dark:border-white shadow-[2px_2px_0_0]">{t('common.or')}</span>
+                  </div>
+                </div>
+
+                {/* Action votes */}
+                <SelectionGroup>
+                  <SelectionItem
+                    checked={myChoice?.type === 'next_round'}
+                    onChange={() => !hasVoted && setMyChoice({ type: 'next_round' })}
+                    disabled={hasVoted}
+                    className="has-[:checked]:bg-green-500/20 has-[:checked]:border-green-500/50 dark:has-[:checked]:bg-green-900/40"
+                    title={
+                      <span className="flex items-center gap-2">
+                        <Play className="size-4" />
+                        {t('voting.option_next_round')}
+                      </span>
+                    }
+                    description={
+                      votes.length > 0 ? (
+                        <span className="text-xs">
+                          {t('voting.vote_count', getActionVoteCount('next_round'), getActionVoteCount('next_round') !== 1 ? 's' : '')}
+                        </span>
+                      ) : undefined
+                    }
+                  />
+                  <SelectionItem
+                    checked={myChoice?.type === 'end_game'}
+                    onChange={() => !hasVoted && setMyChoice({ type: 'end_game' })}
+                    disabled={hasVoted}
+                    className="has-[:checked]:bg-red-500/20 has-[:checked]:border-red-500/50 dark:has-[:checked]:bg-red-900/40"
+                    title={
+                      <span className="flex items-center gap-2">
+                        <Flag className="size-4" />
+                        {t('voting.option_end_game')}
+                      </span>
+                    }
+                    description={
+                      votes.length > 0 ? (
+                        <span className="text-xs">
+                          {t('voting.vote_count', getActionVoteCount('end_game'), getActionVoteCount('end_game') !== 1 ? 's' : '')}
+                        </span>
+                      ) : undefined
+                    }
+                  />
                 </SelectionGroup>
               </div>
-
-              {/* Divider */}
-              <div className="relative py-2">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-black dark:border-white" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white dark:bg-black px-2 text-muted-foreground border-2 border-black dark:border-white shadow-[2px_2px_0_0]">{t('common.or')}</span>
-                </div>
-              </div>
-
-              {/* Action votes */}
-              <SelectionGroup>
-                <SelectionItem
-                  checked={myChoice?.type === 'next_round'}
-                  onChange={() => !hasVoted && setMyChoice({ type: 'next_round' })}
-                  disabled={hasVoted}
-                  className="has-[:checked]:bg-green-500/20 has-[:checked]:border-green-500/50 dark:has-[:checked]:bg-green-900/40"
-                  title={
-                    <span className="flex items-center gap-2">
-                      <Play className="size-4" />
-                      {t('voting.option_next_round')}
-                    </span>
-                  }
-                  description={
-                    votes.length > 0 ? (
-                      <span className="text-xs">
-                        {t('voting.vote_count', getActionVoteCount('next_round'), getActionVoteCount('next_round') !== 1 ? 's' : '')}
-                      </span>
-                    ) : undefined
-                  }
-                />
-                <SelectionItem
-                  checked={myChoice?.type === 'end_game'}
-                  onChange={() => !hasVoted && setMyChoice({ type: 'end_game' })}
-                  disabled={hasVoted}
-                  className="has-[:checked]:bg-red-500/20 has-[:checked]:border-red-500/50 dark:has-[:checked]:bg-red-900/40"
-                  title={
-                    <span className="flex items-center gap-2">
-                      <Flag className="size-4" />
-                      {t('voting.option_end_game')}
-                    </span>
-                  }
-                  description={
-                    votes.length > 0 ? (
-                      <span className="text-xs">
-                        {t('voting.vote_count', getActionVoteCount('end_game'), getActionVoteCount('end_game') !== 1 ? 's' : '')}
-                      </span>
-                    ) : undefined
-                  }
-                />
-              </SelectionGroup>
-            </div>
+            )}
 
             {/* Confirm button */}
             {!hasVoted && (

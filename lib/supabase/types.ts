@@ -20,7 +20,13 @@ export interface Player {
 export interface Game {
   id: string;
   room_id: string;
-  status: "waiting" | "reveal" | "voting" | "vote_result" | "game_over";
+  status:
+    | "waiting"
+    | "reveal"
+    | "voting"
+    | "vote_conclusion"
+    | "vote_result"
+    | "game_over";
   word: string;
   current_round: number;
   created_at: string;

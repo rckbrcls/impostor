@@ -8,9 +8,11 @@ import { useLanguage } from '@/stores/language-store'
 import { Gamepad2, DoorOpen } from 'lucide-react'
 import { MeshGradient } from '@mesh-gradient/react'
 import { type MeshGradientOptions } from '@mesh-gradient/core'
+import { useIsMobile } from '@/hooks/use-mobile'
 
 export default function Home() {
   const { t } = useLanguage()
+  const isMobile = useIsMobile()
 
   const options: MeshGradientOptions = {
     colors: ['#F335AD', '#967FE6', '#23B684', '#0F595E']
@@ -19,22 +21,20 @@ export default function Home() {
   return (
     <main className="min-h-full p-4 flex items-center justify-center">
       <div className="w-full sm:flex flex-col justify-between items-center max-w-3xl space-y-8">
-        {/* Header */}
-        <div className="text-center space-y-0">
+
+
+        {/* Action Buttons */}
+        <div className="space-y-4 text-center">
           <div className="flex flex-col items-center justify-center">
             <Image
               src="/assets/impostor.png"
               alt={t('home.title')}
-              width={300}
-              height={300}
+              width={isMobile ? 200 : 300}
+              height={isMobile ? 200 : 300}
               priority
               className="object-contain"
             />
           </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="space-y-4 text-center">
           <p className="font-semibold text-white antialiased">
             {t('home.subtitle')}
           </p>

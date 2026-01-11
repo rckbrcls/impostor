@@ -10,6 +10,12 @@ export const translations = {
     "footer.made_by": "feito por",
     "language.switch": "Mudar para Inglês",
 
+    // Header
+    "header.menu": "Menu",
+    "header.toggle_menu": "Alternar menu",
+    "header.nav_desc": "Menu de navegação",
+    "header.home": "Início",
+
     // Common
     "common.back": "Voltar",
     "common.or": "ou",
@@ -99,6 +105,17 @@ export const translations = {
     "voting.progress": "({0}/{1} votos)",
     "voting.all_voted": "Todos votaram! Processando resultados...",
 
+    // Vote Conclusion
+    "vote_conclusion.title": "Conclusão do Voto",
+    "vote_conclusion.subtitle": "Veja se o seu voto foi correto",
+    "vote_conclusion.you_voted_for": "Você votou em:",
+    "vote_conclusion.impostor_found": "ERA O IMPOSTOR!",
+    "vote_conclusion.not_impostor": "NÃO era o impostor.",
+    "vote_conclusion.skipped_or_action":
+      "Você pulou ou votou para pular/encerrar.",
+    "vote_conclusion.continue_to_results": "Continuar para Resultados",
+    "vote_conclusion.waiting_for_host": "Aguardando o host continuar...",
+
     // Results
     "results.impostor_won": "O Impostor Venceu!",
     "results.players_won": "Jogadores Venceram!",
@@ -113,10 +130,44 @@ export const translations = {
     "results.ranking_title": "Ranking Final",
     "results.session_ended": "Sessão encerrada",
     "results.end_session": "Encerrar Sessão",
+
+    // Session Ended
+    "session.title": "Sessão Encerrada",
+    "session.subtitle": "Estatísticas finais da sessão",
+    "session.best_detective": "Melhor Detetive",
+    "session.best_detective_desc": "Mais votos corretos no impostor",
+    "session.master_of_disguise": "Mestre do Disfarce",
+    "session.master_of_disguise_desc": "Mais rounds sobrevividos como impostor",
+    "session.most_indecisive": "Mais Indeciso",
+    "session.most_indecisive_desc": "Mais votos para passar rodada",
+    "session.most_suspicious": "Mais Suspeito",
+    "session.most_suspicious_desc": "Mais vezes eliminado",
+    "session.most_accused": "Mais Acusado",
+    "session.most_accused_desc": "Mais votos recebidos",
+    "session.stats_table": "Estatísticas Detalhadas",
+    "session.player": "Jogador",
+    "session.correct_votes": "Votos Corretos",
+    "session.correct_votes_short": "acertos",
+    "session.rounds_survived": "Rounds Sobrevividos",
+    "session.rounds_short": "rounds",
+    "session.times_impostor": "Impostor",
+    "session.passed_rounds": "Pulados",
+    "session.skips_short": "skips",
+    "session.times_eliminated": "Eliminado",
+    "session.eliminations_short": "x",
+    "session.votes_received": "Votos",
+    "session.votes_short": "votos",
+    "session.games_played": "Partidas",
   },
   en: {
     "footer.made_by": "made by",
     "language.switch": "Switch to Portuguese",
+
+    // Header
+    "header.menu": "Menu",
+    "header.toggle_menu": "Toggle menu",
+    "header.nav_desc": "Navigation menu",
+    "header.home": "Home",
 
     // Common
     "common.back": "Back",
@@ -207,6 +258,16 @@ export const translations = {
     "voting.progress": "({0}/{1} votes)",
     "voting.all_voted": "All voted! Processing results...",
 
+    // Vote Conclusion
+    "vote_conclusion.title": "Vote Conclusion",
+    "vote_conclusion.subtitle": "See if your vote was correct",
+    "vote_conclusion.you_voted_for": "You voted for:",
+    "vote_conclusion.impostor_found": "WAS THE IMPOSTOR!",
+    "vote_conclusion.not_impostor": "Was NOT the impostor.",
+    "vote_conclusion.skipped_or_action": "You skipped or voted for action.",
+    "vote_conclusion.continue_to_results": "Continue to Results",
+    "vote_conclusion.waiting_for_host": "Waiting for host to continue...",
+
     // Results
     "results.impostor_won": "The Impostor Won!",
     "results.players_won": "Players Won!",
@@ -221,6 +282,34 @@ export const translations = {
     "results.ranking_title": "Final Ranking",
     "results.session_ended": "Session Ended",
     "results.end_session": "End Session",
+
+    // Session Ended
+    "session.title": "Session Ended",
+    "session.subtitle": "Final session statistics",
+    "session.best_detective": "Best Detective",
+    "session.best_detective_desc": "Most correct votes on impostor",
+    "session.master_of_disguise": "Master of Disguise",
+    "session.master_of_disguise_desc": "Most rounds survived as impostor",
+    "session.most_indecisive": "Most Indecisive",
+    "session.most_indecisive_desc": "Most votes to skip round",
+    "session.most_suspicious": "Most Suspicious",
+    "session.most_suspicious_desc": "Most times eliminated",
+    "session.most_accused": "Most Accused",
+    "session.most_accused_desc": "Most votes received",
+    "session.stats_table": "Detailed Statistics",
+    "session.player": "Player",
+    "session.correct_votes": "Correct Votes",
+    "session.correct_votes_short": "hits",
+    "session.rounds_survived": "Rounds Survived",
+    "session.rounds_short": "rounds",
+    "session.times_impostor": "Impostor",
+    "session.passed_rounds": "Skipped",
+    "session.skips_short": "skips",
+    "session.times_eliminated": "Eliminated",
+    "session.eliminations_short": "x",
+    "session.votes_received": "Votes",
+    "session.votes_short": "votes",
+    "session.games_played": "Games",
   },
 } as const;
 
