@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import useSupabaseBrowser from '@/lib/supabase/browser'
 import {
@@ -8,7 +8,6 @@ import {
   type Room,
   type Game,
   type GamePlayerWithPlayer,
-  getRoundsByGame
 } from '@/lib/supabase'
 import { getClientId } from '@/lib/game-utils'
 import { getRandomWord } from '@/lib/words'
@@ -28,33 +27,18 @@ interface ResultsScreenProps {
 }
 
 export function ResultsScreen({ room, game, gamePlayers, players, onPlayAgain, onEndSession, isHost }: ResultsScreenProps) {
+  /* eslint-disable @typescript-eslint/no-unused-vars */
   const router = useRouter()
-  const supabase = useSupabaseBrowser()
+  // const supabase = useSupabaseBrowser() // Unused now?
   const { t } = useLanguage()
   const [isResetting, setIsResetting] = useState(false)
-  const [impostorWon, setImpostorWon] = useState<boolean>(false)
+
+  // Use winner directly from game object
+  const impostorWon = game.winner === 'impostor'
 
   // Find the impostor
   const impostorGp = gamePlayers.find((gp) => gp.is_impostor)
   const impostor = impostorGp?.player
-
-  useEffect(() => {
-    async function checkWinner() {
-      if (!impostor) return
-
-      // Fetch all rounds to see if impostor was eliminated
-      const { data: rounds } = await getRoundsByGame(game.id)
-
-      const wasEliminated = rounds.some(r => r.eliminated_player_id === impostor.id)
-
-      // Impostor wins if they were NOT eliminated
-      // (Even if game ended by vote 1v1, they weren't eliminated in that vote, someone else was, or game ended by action)
-      // The only way Impostor loses is if they were eliminated.
-      setImpostorWon(!wasEliminated)
-    }
-
-    checkWinner()
-  }, [game.id, impostor])
 
   const goHome = () => {
     router.push('/')
@@ -103,7 +87,7 @@ export function ResultsScreen({ room, game, gamePlayers, players, onPlayAgain, o
           )}
         </CardTitle>
         <CardDescription>
-          {t('results.rounds_played', game.current_round, game.current_round !== 1 ? 's' : '')}
+          {t('results.rounds_played', game.current_round, game.current_round !== 1 ? 's' : '', game.current_round !== 1 ? 's' : '')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

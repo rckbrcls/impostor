@@ -124,7 +124,7 @@ export const translations = {
     // Results
     "results.impostor_won": "O Impostor Venceu!",
     "results.players_won": "Jogadores Venceram!",
-    "results.rounds_played": "{0} rodada{1} jogada{1}",
+    "results.rounds_played": "{0} rodada{1} jogada{2}",
     "results.word_was": "A palavra era:",
     "results.impostor_was": "O impostor era:",
     "results.survived_rounds": "Sobreviveu por {0} rodada{1}!",

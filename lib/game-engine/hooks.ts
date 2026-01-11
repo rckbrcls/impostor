@@ -42,6 +42,7 @@ function calculateViewPhase(
   game: Game | null,
   currentPlayer: Player | null,
   hasAckedRole: boolean,
+  dbAckedRole: boolean,
 ): ViewPhase {
   if (!room) return "joining";
   if (!currentPlayer) return "joining";
@@ -54,7 +55,7 @@ function calculateViewPhase(
   // Map game status to view phase
   switch (game.status) {
     case "reveal":
-      return hasAckedRole ? "waiting_for_start" : "reveal";
+      return hasAckedRole || dbAckedRole ? "waiting_for_start" : "reveal";
     case "voting":
       return "voting";
     case "vote_result":
@@ -119,7 +120,13 @@ export function useGameLoop(roomCode: string): UseGameLoopReturn {
   const isHost = room?.host_id === clientId;
   const isImpostor = currentGamePlayer?.is_impostor ?? false;
 
-  const viewPhase = calculateViewPhase(room, game, currentPlayer, hasAckedRole);
+  const viewPhase = calculateViewPhase(
+    room,
+    game,
+    currentPlayer,
+    hasAckedRole,
+    currentGamePlayer?.role_acknowledged ?? false,
+  );
 
   // Update refs
   useEffect(() => {
@@ -144,37 +151,44 @@ export function useGameLoop(roomCode: string): UseGameLoopReturn {
     }
   }, [supabase, roomCode]);
 
-  const fetchGameData = useCallback(async () => {
-    if (!room?.id) return;
+  const fetchGameData = useCallback(
+    async (overrideRoomId?: string) => {
+      const targetRoomId = overrideRoomId || room?.id;
+      if (!targetRoomId) return;
 
-    try {
-      // 1. Fetch active game
-      const { data: gameData } = await getActiveGame(supabase, room.id);
-      setGame(gameData as Game);
+      try {
+        // 1. Fetch active game
+        const { data: gameData } = await getActiveGame(supabase, targetRoomId);
+        setGame(gameData as Game);
 
-      // 2. Fetch players
-      const { data: playersData } = await getPlayersByRoom(supabase, room.id);
-      setPlayers((playersData as Player[]) || []);
-
-      // 3. Fetch specific game details if game exists
-      if (gameData) {
-        const { data: roundData } = await getCurrentRound(
+        // 2. Fetch players
+        const { data: playersData } = await getPlayersByRoom(
           supabase,
-          gameData.id,
-          gameData.current_round ?? 1,
+          targetRoomId,
         );
-        setCurrentRound(roundData as Round);
+        setPlayers((playersData as Player[]) || []);
 
-        const { data: gpData } = await getGamePlayers(supabase, gameData.id);
-        setGamePlayers(gpData);
-      } else {
-        setCurrentRound(null);
-        setGamePlayers([]);
+        // 3. Fetch specific game details if game exists
+        if (gameData) {
+          const { data: roundData } = await getCurrentRound(
+            supabase,
+            gameData.id,
+            gameData.current_round ?? 1,
+          );
+          setCurrentRound(roundData as Round);
+
+          const { data: gpData } = await getGamePlayers(supabase, gameData.id);
+          setGamePlayers(gpData);
+        } else {
+          setCurrentRound(null);
+          setGamePlayers([]);
+        }
+      } catch (error) {
+        console.error("[useGameLoop] Error fetching game data:", error);
       }
-    } catch (error) {
-      console.error("[useGameLoop] Error fetching game data:", error);
-    }
-  }, [supabase, room?.id]);
+    },
+    [supabase, room?.id],
+  );
 
   const refresh = useCallback(async () => {
     await fetchRoom();
@@ -186,18 +200,23 @@ export function useGameLoop(roomCode: string): UseGameLoopReturn {
   useEffect(() => {
     async function initialize() {
       setIsLoading(true);
-      await fetchRoom();
+      const roomData = await fetchRoom();
+      if (roomData) {
+        // Pass roomData.id directly to avoid waiting for state update
+        await fetchGameData(roomData.id);
+      }
       setIsInitialized(true);
       setIsLoading(false);
     }
     initialize();
-  }, [fetchRoom]);
+  }, []); // Run once on mount
 
+  // Watch for room changes AFTER initialization (e.g. navigation or updates)
   useEffect(() => {
-    if (room?.id) {
+    if (isInitialized && room?.id) {
       fetchGameData();
     }
-  }, [room?.id, fetchGameData]);
+  }, [room?.id, fetchGameData, isInitialized]);
 
   // ============ Role Acknowledgement ============
 
