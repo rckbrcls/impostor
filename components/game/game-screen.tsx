@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import useSupabaseBrowser from '@/lib/supabase/browser'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   type Player,
   type Room,
@@ -38,9 +39,7 @@ export function GameScreen({
   isHost,
   onReady
 }: GameScreenProps) {
-  const supabase = useSupabaseBrowser()
-  const clientId = getClientId()
-  const isImpostor = currentGamePlayer?.is_impostor ?? false
+  const isImpostor = currentGamePlayer?.is_impostor ?? true
   const { t } = useLanguage()
 
   const [eliminatedPlayerIds, setEliminatedPlayerIds] = useState<Set<string>>(new Set())
@@ -61,7 +60,21 @@ export function GameScreen({
   }, [game.id, game.current_round])
 
 
-
+  if (!currentGamePlayer) {
+    return (
+      <Card className="w-full max-w-md mx-auto">
+        <CardHeader className="text-center space-y-2">
+          <Skeleton className="h-6 w-1/3 mx-auto" />
+          <Skeleton className="h-4 w-1/4 mx-auto" />
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <Skeleton className="h-48 w-full" />
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </CardContent>
+      </Card>
+    )
+  }
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="text-center">

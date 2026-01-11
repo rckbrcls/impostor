@@ -46,7 +46,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <Header />
-          <main className="flex-1 w-full overflow-y-auto">
+          <main className="flex-1 w-full">
             {children}
           </main>
           <Footer />
