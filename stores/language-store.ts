@@ -223,18 +223,26 @@ interface LanguageState {
   t: (key: TranslationKey, ...args: (string | number)[]) => string;
 }
 
-export const useLanguageStore = create<LanguageState>()(
+const getTranslation = (
+  language: Language,
+  key: TranslationKey,
+  args: (string | number)[]
+) => {
+  let translation: string = translations[language][key] || key;
+  args.forEach((arg, index) => {
+    translation = translation.replace(`{${index}}`, String(arg));
+  });
+  return translation;
+};
+
+const useBaseLanguageStore = create<LanguageState>()(
   persist(
     (set, get) => ({
       language: "en",
       setLanguage: (lang: Language) => set({ language: lang }),
       t: (key: TranslationKey, ...args: (string | number)[]) => {
         const { language } = get();
-        let translation: string = translations[language][key] || key;
-        args.forEach((arg, index) => {
-          translation = translation.replace(`{${index}}`, String(arg));
-        });
-        return translation;
+        return getTranslation(language, key, args);
       },
     }),
     {
@@ -243,5 +251,27 @@ export const useLanguageStore = create<LanguageState>()(
   )
 );
 
-// Re-export with the same name for backwards compatibility
-export const useLanguage = useLanguageStore;
+import { useState, useEffect } from "react";
+
+export const useLanguage = () => {
+  const store = useBaseLanguageStore();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return {
+      ...store,
+      language: "en" as Language,
+      t: (key: TranslationKey, ...args: (string | number)[]) =>
+        getTranslation("en", key, args),
+    };
+  }
+
+  return store;
+};
+
+// Deprecate direct usage of the base store if possible, or alias it if needed for non-react contexts (though this is a store file)
+// For now, we only export useLanguage as that's what the app uses.
