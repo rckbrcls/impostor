@@ -8,11 +8,6 @@ import {
   type Room,
   type Game,
   type GamePlayerWithPlayer,
-  createGame,
-  createGamePlayers,
-  setImpostor,
-  createRound,
-  updateRoomStatus,
   getRoundsByGame
 } from '@/lib/supabase'
 import { getClientId } from '@/lib/game-utils'
@@ -27,10 +22,12 @@ interface ResultsScreenProps {
   game: Game
   gamePlayers: GamePlayerWithPlayer[]
   players: Player[]
-  onPlayAgain: () => void
+  onPlayAgain: (word: string) => Promise<any>
+  onEndSession: () => Promise<any>
+  isHost: boolean
 }
 
-export function ResultsScreen({ room, game, gamePlayers, players, onPlayAgain }: ResultsScreenProps) {
+export function ResultsScreen({ room, game, gamePlayers, players, onPlayAgain, onEndSession, isHost }: ResultsScreenProps) {
   const router = useRouter()
   const supabase = useSupabaseBrowser()
   const { t } = useLanguage()
@@ -64,40 +61,14 @@ export function ResultsScreen({ room, game, gamePlayers, players, onPlayAgain }:
   }
 
   const clientId = getClientId()
-  const isHost = room.host_id === clientId
 
-  const playAgain = async () => {
+  const handlePlayAgain = async () => {
     if (!isHost) return
 
     setIsResetting(true)
     try {
-      // Create a new game (instead of resetting)
       const word = getRandomWord()
-      const { data: newGame, error: gameError } = await createGame(room.id, word)
-
-      if (gameError || !newGame) {
-        console.error('Error creating game:', gameError)
-        return
-      }
-
-      // Create game_players for all current players
-      const playerIds = players.map(p => p.id)
-      const { error: gpError } = await createGamePlayers(newGame.id, playerIds)
-
-      if (gpError) {
-        console.error('Error creating game players:', gpError)
-        return
-      }
-
-      // Pick random impostor
-      const impostorIndex = Math.floor(Math.random() * players.length)
-      const impostorId = players[impostorIndex].id
-      await setImpostor(newGame.id, impostorId)
-
-      // Create first round
-      await createRound(newGame.id, 1)
-
-      onPlayAgain()
+      await onPlayAgain(word)
     } catch (error) {
       console.error('Erro ao reiniciar jogo:', error)
     } finally {
@@ -105,22 +76,15 @@ export function ResultsScreen({ room, game, gamePlayers, players, onPlayAgain }:
     }
   }
 
-  const endSession = async () => {
+  const handleEndSession = async () => {
     if (!isHost) return
     try {
       console.log('[ResultsScreen] Ending session for room:', room.id)
-      const { error } = await updateRoomStatus(room.id, 'game_finished')
-      if (error) {
-        console.error('[ResultsScreen] Error updating room status:', error)
-      } else {
-        console.log('[ResultsScreen] Room status updated to game_finished')
-      }
+      await onEndSession()
     } catch (error) {
       console.error('[ResultsScreen] Exception ending session:', error)
     }
   }
-
-  // Note: room.status === 'game_finished' is now handled by SessionEndedScreen
 
   return (
     <Card className="w-full max-w-md mx-auto">
@@ -197,7 +161,7 @@ export function ResultsScreen({ room, game, gamePlayers, players, onPlayAgain }:
             {t('results.home')}
           </Button>
           {isHost && (
-            <Button className="flex-1" onClick={playAgain} disabled={isResetting}>
+            <Button className="flex-1" onClick={handlePlayAgain} disabled={isResetting}>
               <RotateCcw className="mr-2" />
               {t('results.play_again')}
             </Button>
@@ -205,7 +169,7 @@ export function ResultsScreen({ room, game, gamePlayers, players, onPlayAgain }:
         </div>
 
         {isHost && (
-          <Button variant="outline" className="w-full text-red-500 border-red-500 dark:border-red-500 shadow-[2px_2px_0_0] dark:shadow-[2px_2px_0_0] hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20" onClick={endSession}>
+          <Button variant="outline" className="w-full text-red-500 border-red-500 dark:border-red-500 shadow-[2px_2px_0_0] dark:shadow-[2px_2px_0_0] hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20" onClick={handleEndSession}>
             {t('results.end_session', 'Encerrar Sessão')}
           </Button>
         )}

@@ -10,10 +10,6 @@ import {
   type Vote,
   type GamePlayerWithPlayer,
   getVotesByRound,
-  updateGameStatus,
-  createRound,
-  updateGameRound,
-  endGame,
   getRoundsByGame,
   incrementPlayerScore
 } from '@/lib/supabase'
@@ -30,6 +26,8 @@ interface VoteConclusionScreenProps {
   gamePlayers: GamePlayerWithPlayer[]
   currentPlayer: Player | null
   isHost: boolean
+  onStartNextRound: () => Promise<any>
+  onEndGame: (winner: 'impostor' | 'players') => Promise<any>
 }
 
 export function VoteConclusionScreen({
@@ -38,7 +36,9 @@ export function VoteConclusionScreen({
   currentRound,
   gamePlayers,
   currentPlayer,
-  isHost
+  isHost,
+  onStartNextRound,
+  onEndGame
 }: VoteConclusionScreenProps) {
   const supabase = useSupabaseBrowser()
   const { t } = useLanguage()
@@ -118,7 +118,7 @@ export function VoteConclusionScreen({
       if (allVotes && impostorId) {
         for (const vote of allVotes) {
           if (!vote.is_action_vote && vote.target_player_id === impostorId) {
-            // +10 points for voting correctly on the impostor
+            // +10 points for correct vote on impostor
             await incrementPlayerScore(vote.voter_id, 10)
             console.log(`[Scoring] +10 to ${vote.voter_id} for correct vote`)
           }
@@ -134,7 +134,7 @@ export function VoteConclusionScreen({
             console.log(`[Scoring] +20 to ${gp.player_id} for winning (catching impostor)`)
           }
         }
-        await endGame(game.id)
+        await onEndGame('players')
       } else {
         // Impostor survived this round! Give them points
         if (impostorId) {
@@ -158,20 +158,17 @@ export function VoteConclusionScreen({
             await incrementPlayerScore(impostorId, 20)
             console.log(`[Scoring] +20 to ${impostorId} for winning as impostor (last survivor)`)
           }
-          await endGame(game.id)
+          await onEndGame('impostor')
         } else if (thisRoundFresh?.majority_action === 'end_game') {
           // Majority voted to end game - impostor wins by default
           if (impostorId) {
             await incrementPlayerScore(impostorId, 20)
             console.log(`[Scoring] +20 to ${impostorId} for winning (game ended by vote)`)
           }
-          await endGame(game.id)
+          await onEndGame('impostor')
         } else {
           // CONTINUE TO NEXT ROUND
-          const nextRoundNumber = game.current_round + 1
-          await createRound(game.id, nextRoundNumber)
-          await updateGameRound(game.id, nextRoundNumber)
-          await updateGameStatus(game.id, 'voting')
+          await onStartNextRound()
         }
       }
 
