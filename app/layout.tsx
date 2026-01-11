@@ -46,9 +46,9 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <Header />
-          <div className="w-full flex-1">
+          <main className="w-full flex-1">
             {children}
-          </div>
+          </main>
           <Footer />
         </ThemeProvider>
       </body>
