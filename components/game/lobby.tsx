@@ -10,7 +10,8 @@ import {
   createGame,
   createGamePlayers,
   setImpostor,
-  createRound
+  createRound,
+  updateRoomStatus
 } from '@/lib/supabase'
 import { getClientId } from '@/lib/game-utils'
 import { getRandomWord } from '@/lib/words'
@@ -51,6 +52,7 @@ export function Lobby({ room, players, onGameStart }: LobbyProps) {
     setIsStarting(true)
     try {
       // 1. Create a new game
+      console.log('Creating game...')
       const word = getRandomWord()
       const { data: newGame, error: gameError } = await createGame(room.id, word)
 
@@ -58,6 +60,7 @@ export function Lobby({ room, players, onGameStart }: LobbyProps) {
         console.error('Error creating game:', gameError)
         return
       }
+      console.log('Game created:', newGame)
 
       // 2. Create game_players for all players
       const playerIds = players.map(p => p.id)
@@ -75,6 +78,15 @@ export function Lobby({ room, players, onGameStart }: LobbyProps) {
 
       // 4. Create first round
       await createRound(newGame.id, 1)
+
+      // 5. Update room status to 'playing'
+      console.log('Updating room status to playing...')
+      const { error: updateError } = await updateRoomStatus(room.id, 'playing')
+      if (updateError) {
+        console.error('Error updating room status:', updateError)
+      } else {
+        console.log('Room status updated')
+      }
 
       onGameStart()
     } catch (error) {

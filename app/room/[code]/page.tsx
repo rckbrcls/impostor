@@ -22,7 +22,7 @@ import { ResultsScreen } from '@/components/game/results-screen'
 import { JoinRoomForm } from '@/components/game/join-room-form'
 import { Skeleton } from '@/components/ui/skeleton'
 
-type GamePhase = 'joining' | 'lobby' | 'playing' | 'voting' | 'ended'
+type GamePhase = 'joining' | 'lobby' | 'reveal' | 'voting' | 'vote_result' | 'game_over' | 'room_ended'
 
 export default function RoomPage() {
   const params = useParams()
@@ -44,14 +44,18 @@ export default function RoomPage() {
 
   // Fetch room data
   const fetchRoom = useCallback(async () => {
+    console.log('[RoomPage] Fetching room...')
     try {
       const { data, error } = await getRoomByCode(supabase, code)
       if (error) {
+        console.error('[RoomPage] Error fetching room:', error)
         setRoomError(true)
         return
       }
+      console.log('[RoomPage] Room fetched:', data)
       setRoom(data as Room)
-    } catch {
+    } catch (e) {
+      console.error('[RoomPage] Exception fetching room:', e)
       setRoomError(true)
     } finally {
       setIsLoadingRoom(false)
@@ -72,8 +76,10 @@ export default function RoomPage() {
   // Fetch active game and related data
   const fetchGameData = useCallback(async () => {
     if (!room?.id) return
+    console.log('[RoomPage] Fetching game data for room:', room.id)
 
     const { data: activeGame } = await getActiveGame(room.id)
+    console.log('[RoomPage] Active game:', activeGame)
     setGame(activeGame)
 
     if (activeGame) {
@@ -229,41 +235,66 @@ export default function RoomPage() {
     playerRef.current = p
   }, [room, players, clientId])
 
-  // Cleanup player when browser/tab is closed OR component unmounts
+  // // Cleanup player when browser/tab is closed OR component unmounts
+  // useEffect(() => {
+  //   const handleLeave = () => {
+  //     const roomToRemove = roomRef.current
+  //     const playerToRemove = playerRef.current
+
+  //     if (!roomToRemove?.id || !playerToRemove?.id) return
+
+  //     const data = {
+  //       playerId: playerToRemove.id,
+  //       roomId: roomToRemove.id,
+  //     }
+
+  //     // Use fetch with keepalive for more reliable execution during unloads/navigation
+  //     // sendBeacon can have issues with headers or be tricky to debug
+  //     fetch('/api/leave-room', {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       body: JSON.stringify(data),
+  //       keepalive: true,
+  //     }).catch((err) => console.error('Failed to leave room:', err))
+  //   }
+
+  //   window.addEventListener('pagehide', handleLeave)
+
+  //   return () => {
+  //     window.removeEventListener('pagehide', handleLeave)
+  //     handleLeave()
+  //   }
+  // }, [])
+
+
+
+  // Local state for role acknowledgement
+  const [hasAckedRound, setHasAckedRound] = useState(false)
+
+  // Load/Save acknowledgement from localStorage
   useEffect(() => {
-    const handleLeave = () => {
-      const roomToRemove = roomRef.current
-      const playerToRemove = playerRef.current
+    if (!game?.id || !currentRound?.id) return
 
-      if (!roomToRemove?.id || !playerToRemove?.id) return
+    const key = `impostor_ack_${game.id}_${currentRound.id}`
+    const savedAck = localStorage.getItem(key) === 'true'
+    setHasAckedRound(savedAck)
+  }, [game?.id, currentRound?.id])
 
-      const data = {
-        playerId: playerToRemove.id,
-        roomId: roomToRemove.id,
-      }
+  const handleAckRound = useCallback(() => {
+    if (!game?.id || !currentRound?.id) return
+    const key = `impostor_ack_${game.id}_${currentRound.id}`
+    localStorage.setItem(key, 'true')
+    setHasAckedRound(true)
+  }, [game?.id, currentRound?.id])
 
-      // Use fetch with keepalive for more reliable execution during unloads/navigation
-      // sendBeacon can have issues with headers or be tricky to debug
-      fetch('/api/leave-room', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-        keepalive: true,
-      }).catch((err) => console.error('Failed to leave room:', err))
-    }
+  // Reset local Ack when round changes
+  useEffect(() => {
+    // Logic handled by key change in useEffect above, but we explicit reset for clarity if needed
+    // Actually the first useEffect handles reading the new key which defaults to false (null)
+  }, [game?.id, currentRound?.id])
 
-    window.addEventListener('pagehide', handleLeave)
-
-    return () => {
-      window.removeEventListener('pagehide', handleLeave)
-      handleLeave()
-    }
-  }, [])
-
-  // View state for local user (seeing role vs voting)
-  const [viewState, setViewState] = useState<'role' | 'voting'>('role')
 
   // Calculate phase
   useEffect(() => {
@@ -272,27 +303,32 @@ export default function RoomPage() {
     let newPhase: GamePhase
     if (!currentPlayer) {
       newPhase = 'joining'
+    } else if (room.status === 'game_finished') {
+      newPhase = 'room_ended'
     } else if (!game) {
       newPhase = 'lobby'
-    } else if (game.status === 'ended') {
-      newPhase = 'ended'
+    } else if (game.status === 'game_over') {
+      newPhase = 'game_over'
     } else {
-      // Treat 'playing' and 'voting' as the same phase effectively
-      newPhase = 'voting'
-    }
-    setPhase(newPhase)
-  }, [room, currentPlayer, game])
-
-  // Reset view state when round changes
-  useEffect(() => {
-    if (currentRound?.id && game) {
-      if (game.current_round === 1) {
-        setViewState('role')
-      } else {
-        setViewState('voting')
+      // Map game status directly to phase
+      if (game.status === 'reveal') {
+        // If user already clicked "Ready", show voting screen
+        // But only if we have a current round
+        if (hasAckedRound) {
+          newPhase = 'voting'
+        } else {
+          newPhase = 'reveal'
+        }
       }
+      else if (game.status === 'voting') newPhase = 'voting'
+      else if (game.status === 'vote_result') newPhase = 'vote_result'
+      else newPhase = 'lobby'
     }
-  }, [currentRound?.id, game?.current_round])
+    console.log('[RoomPage] Calculated phase:', newPhase, { roomStatus: room.status, gameStatus: game?.status, hasAckedRound })
+    setPhase(newPhase)
+  }, [room, currentPlayer, game, hasAckedRound])
+
+
 
   const isLoading = isLoadingRoom || (!!room && isLoadingPlayers)
 
@@ -316,11 +352,15 @@ export default function RoomPage() {
         <Lobby
           room={room}
           players={players}
-          onGameStart={fetchGameData}
+          onGameStart={() => {
+            console.log('[RoomPage] Game start triggered in Lobby, refreshing data...')
+            fetchRoom()
+            fetchGameData()
+          }}
         />
       )}
 
-      {phase === 'voting' && game && currentRound && viewState === 'role' && (
+      {phase === 'reveal' && game && currentRound && (
         <GameScreen
           room={room}
           game={game}
@@ -329,11 +369,14 @@ export default function RoomPage() {
           currentPlayer={currentPlayer}
           currentGamePlayer={currentGamePlayer ?? null}
           isHost={isHost}
-          onReady={() => setViewState('voting')}
+          onReady={() => {
+            handleAckRound()
+            fetchGameData()
+          }}
         />
       )}
 
-      {phase === 'voting' && game && currentRound && viewState === 'voting' && (
+      {(phase === 'voting' || phase === 'vote_result') && game && currentRound && (
         <VotingScreen
           room={room}
           game={game}
@@ -345,7 +388,7 @@ export default function RoomPage() {
         />
       )}
 
-      {phase === 'ended' && game && (
+      {(phase === 'game_over' || phase === 'room_ended') && game && (
         <ResultsScreen
           room={room}
           game={game}

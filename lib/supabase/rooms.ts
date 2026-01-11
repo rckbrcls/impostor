@@ -12,6 +12,7 @@ export async function createRoom(code: string, hostId: string) {
     .insert({
       code,
       host_id: hostId,
+      status: "waiting",
     })
     .select()
     .single();
@@ -62,6 +63,19 @@ export async function deleteRoom(roomId: string) {
   await supabase.from("players").delete().eq("room_id", roomId);
   // Delete the room
   const { error } = await supabase.from("rooms").delete().eq("id", roomId);
+  return { error };
+}
+
+// ============ Realtime Subscriptions ============
+
+/**
+ * Update room status (forcing recompile)
+ */
+export async function updateRoomStatus(roomId: string, status: Room["status"]) {
+  const { error } = await supabase
+    .from("rooms")
+    .update({ status })
+    .eq("id", roomId);
   return { error };
 }
 

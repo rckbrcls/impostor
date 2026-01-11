@@ -43,7 +43,6 @@ export function GameScreen({
   const isImpostor = currentGamePlayer?.is_impostor ?? false
   const { t } = useLanguage()
 
-  // Get eliminated players from previous rounds
   const [eliminatedPlayerIds, setEliminatedPlayerIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
@@ -60,6 +59,8 @@ export function GameScreen({
 
     fetchEliminatedPlayers()
   }, [game.id, game.current_round])
+
+
 
   return (
     <Card className="w-full max-w-md mx-auto">
@@ -126,13 +127,13 @@ export function GameScreen({
           </div>
         </div>
 
-        {/* Ready button for all players */}
+        {/* Ready button - Now for ALL players to advance locally to voting */}
         <Button
           className="w-full"
           onClick={onReady}
         >
           <Vote className="mr-2 size-4" />
-          {t('game.start_voting')}
+          {t('game.ready_to_vote') || 'Pronto para Votar'}
         </Button>
       </CardContent>
     </Card>

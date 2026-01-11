@@ -5,7 +5,7 @@ export interface Room {
   code: string;
   host_id: string;
   created_at: string;
-  status?: "waiting" | "playing";
+  status?: "waiting" | "playing" | "game_finished";
 }
 
 export interface Player {
@@ -20,7 +20,7 @@ export interface Player {
 export interface Game {
   id: string;
   room_id: string;
-  status: "playing" | "voting" | "ended";
+  status: "waiting" | "reveal" | "voting" | "vote_result" | "game_over";
   word: string;
   current_round: number;
   created_at: string;

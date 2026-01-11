@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import useSupabaseBrowser from '@/lib/supabase/browser'
 import {
   type Player,
@@ -54,10 +54,14 @@ export function VotingScreen({
   const [hasVoted, setHasVoted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
-  const [revealResult, setRevealResult] = useState(false)
+
+  // Local state for calculation results (derived from votes)
   const [mostVotedPlayer, setMostVotedPlayer] = useState<{ player: Player | null; wasImpostor: boolean } | null>(null)
   const [decidedAction, setDecidedAction] = useState<'next_round' | 'end_game' | null>(null)
+
   const { t } = useLanguage()
+
+  const revealResult = game.status === 'vote_result'
 
   // Find impostor
   const impostorGamePlayer = gamePlayers.find(gp => gp.is_impostor)
@@ -65,28 +69,38 @@ export function VotingScreen({
   // Total active players (all game players for now - elimination tracking would need more work)
   const totalActivePlayers = gamePlayers.length
 
+  // Track the current round ID to prevent stale updates
+  const currentRoundIdRef = useRef(currentRound?.id)
+
+  useEffect(() => {
+    currentRoundIdRef.current = currentRound?.id
+  }, [currentRound?.id])
+
   // Fetch votes
   const fetchVotes = useCallback(async () => {
     if (!currentRound?.id) return
-    const { data } = await getVotesByRound(currentRound.id)
-    setVotes(data || [])
-    setIsLoadingVotes(false)
+    const roundIdToFetch = currentRound.id
+
+    setIsLoadingVotes(true)
+    const { data } = await getVotesByRound(roundIdToFetch)
+
+    // Only update state if we are still on the same round
+    if (currentRoundIdRef.current === roundIdToFetch) {
+      setVotes(data || [])
+      setIsLoadingVotes(false)
+    }
   }, [currentRound?.id])
 
-  // Initial fetch
-  useEffect(() => {
-    fetchVotes()
-  }, [fetchVotes])
-
-  // Reset state when round changes
+  // Initial fetch and reset
   useEffect(() => {
     if (currentRound?.id) {
+      // Clear votes immediately when round changes to avoid seeing previous round votes
       setVotes([])
       setMyChoice(null)
       setHasVoted(false)
-      setRevealResult(false)
       setMostVotedPlayer(null)
       setDecidedAction(null)
+
       fetchVotes()
     }
   }, [currentRound?.id, fetchVotes])
@@ -135,12 +149,32 @@ export function VotingScreen({
     }
   }, [votes, currentPlayer?.id])
 
-  // Process results when all players voted (all players process to show results)
+  // Process results when all players voted (Host triggers update to vote_result)
   useEffect(() => {
-    if (votes.length === totalActivePlayers && votes.length > 0 && !isProcessing && !revealResult) {
+    if (
+      isHost &&
+      votes.length === totalActivePlayers &&
+      votes.length > 0 &&
+      (game.status === 'voting' || game.status === 'reveal') &&
+      !isProcessing &&
+      currentRound.round_number === game.current_round &&
+      votes.every(v => v.round_id === currentRound.id)
+    ) {
+      // Auto-switch to result view if everyone voted?
+      // Or should we wait for host to click "Show Result"?
+      // The previous code verified votes locally.
+      // Let's make it auto-transition to 'vote_result' status to show everyone the result.
       processVotingResults()
     }
-  }, [votes, totalActivePlayers, isProcessing, revealResult])
+  }, [votes, totalActivePlayers, isProcessing, game.status, isHost, currentRound.round_number, game.current_round, currentRound.id])
+
+  // Recalculate results if we are in vote_result mode (for Late Joiners or Refresh)
+  useEffect(() => {
+    if (game.status === 'vote_result' && votes.length > 0) {
+      // Just calculate local variables for display
+      calculateResults()
+    }
+  }, [game.status, votes])
 
   // Count votes for each player
   const getPlayerVoteCount = (playerId: string) => {
@@ -175,9 +209,14 @@ export function VotingScreen({
     }
   }
 
-  const processVotingResults = async () => {
-    setIsProcessing(true)
+  const calculateResults = () => {
+    // Same logic as processVotingResults but just updates local state for display
+    const { action, mostVoted } = determineOutcome()
+    setMostVotedPlayer(mostVoted)
+    setDecidedAction(action === 'eliminate' ? 'next_round' : action)
+  }
 
+  const determineOutcome = () => {
     // Count votes by type
     const playerVotes: Record<string, number> = {}
     let nextRoundVotes = 0
@@ -202,18 +241,14 @@ export function VotingScreen({
       }
     }
 
-    // Find player info
+    let mostVoted: { player: Player | null; wasImpostor: boolean } | null = null
     if (mostVotedId) {
       const votedGp = gamePlayers.find((gp) => gp.player_id === mostVotedId)
-      setMostVotedPlayer({
+      mostVoted = {
         player: votedGp?.player || null,
         wasImpostor: votedGp?.is_impostor ?? false,
-      })
-    } else {
-      setMostVotedPlayer(null)
+      }
     }
-
-    setRevealResult(true)
 
     // Determine action based on majority
     let action: 'next_round' | 'end_game' | 'eliminate'
@@ -226,7 +261,19 @@ export function VotingScreen({
       action = 'next_round'
     }
 
-    setDecidedAction(action === 'eliminate' ? 'next_round' : action)
+    return { action, mostVoted }
+  }
+
+  const processVotingResults = async () => {
+    setIsProcessing(true)
+
+    // We update status to vote_result so everyone sees it
+    await updateGameStatus(game.id, 'vote_result')
+
+    // We can also compute locally to decided elimination right away?
+    // Ideally the server or next step handles elimination, but we do it here.
+    calculateResults()
+
     setIsProcessing(false)
   }
 
@@ -260,7 +307,7 @@ export function VotingScreen({
       const nextRoundNumber = game.current_round + 1
       await createRound(game.id, nextRoundNumber)
 
-      // Update game with new round number and back to playing status
+      // Update game with new round number and Back to VOTING status (Skip reveal)
       await updateGameRound(game.id, nextRoundNumber)
       await updateGameStatus(game.id, 'voting')
 
@@ -273,6 +320,7 @@ export function VotingScreen({
   const doEndGame = async () => {
     try {
       await updateRoundMajorityAction(currentRound.id, 'end_game')
+      // Sets game status to game_over
       await endGame(game.id)
       onRoundEnd()
     } catch (error) {
@@ -299,19 +347,12 @@ export function VotingScreen({
         {revealResult && (
           <div className="space-y-4">
             {mostVotedPlayer?.player ? (
-              <div className={`p-6 text-center border-2 border-black shadow-[4px_4px_0_0] dark:border-white dark:shadow-white ${mostVotedPlayer.wasImpostor
-                ? 'bg-green-500/20'
-                : 'bg-orange-500/20'
-                }`}>
+              <div className="p-6 text-center border-2 border-black shadow-[4px_4px_0_0] dark:border-white dark:shadow-white bg-neutral-500/20">
                 <p className="text-sm text-muted-foreground mb-2">{t('voting.most_voted_label')}</p>
                 <p className="text-3xl font-bold mb-2">
                   {mostVotedPlayer.player.name}
                 </p>
-                {mostVotedPlayer.wasImpostor ? (
-                  <p className="text-xl text-green-400 font-semibold">{t('voting.result_impostor')}</p>
-                ) : (
-                  <p className="text-xl text-orange-400 font-semibold">{t('voting.result_innocent')}</p>
-                )}
+                <p className="text-xl text-neutral-600 dark:text-neutral-400 font-semibold">{t('voting.result_selected')}</p>
               </div>
             ) : (
               <div className="p-6 text-center border-2 border-black shadow-[4px_4px_0_0] dark:border-white dark:shadow-white">

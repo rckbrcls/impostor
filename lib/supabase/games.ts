@@ -12,7 +12,7 @@ export async function createGame(roomId: string, word: string) {
     .insert({
       room_id: roomId,
       word,
-      status: "voting",
+      status: "reveal",
       current_round: 1,
     })
     .select()
@@ -28,7 +28,7 @@ export async function getActiveGame(roomId: string) {
     .from("games")
     .select("*")
     .eq("room_id", roomId)
-    .neq("status", "ended")
+    .eq("room_id", roomId)
     .order("created_at", { ascending: false })
     .limit(1)
     .single();
@@ -75,7 +75,7 @@ export async function updateGameRound(gameId: string, currentRound: number) {
 export async function endGame(gameId: string) {
   const { error } = await supabase
     .from("games")
-    .update({ status: "ended" as const })
+    .update({ status: "game_over" as const })
     .eq("id", gameId);
   return { error };
 }

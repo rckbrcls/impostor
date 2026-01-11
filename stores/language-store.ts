@@ -72,6 +72,7 @@ export const translations = {
     "game.starting_voting": "Iniciando...",
     "game.waiting_host_vote": "Aguarde o host iniciar a votação...",
     "game.eliminated": "❌",
+    "game.ready_to_vote": "Pronto para Votar",
 
     // Voting
     "voting.title": "Rodada {0} - Votação",
@@ -80,6 +81,7 @@ export const translations = {
     "voting.most_voted_label": "O mais votado foi:",
     "voting.result_impostor": "✅ ERA O IMPOSTOR! Vocês venceram!",
     "voting.result_innocent": "🚫 Foi eliminado! Não era o impostor.",
+    "voting.result_selected": "Foi selecionado pela maioria!",
     "voting.no_votes": "Ninguém foi votado como impostor",
     "voting.processing": "Processando votos...",
     "voting.next_round": "Ir para Próxima Rodada",
@@ -109,6 +111,9 @@ export const translations = {
     "results.home": "Início",
     "results.play_again": "Jogar Novamente",
     "results.unknown": "Desconhecido",
+    "results.ranking_title": "Ranking Final",
+    "results.session_ended": "Sessão encerrada",
+    "results.end_session": "Encerrar Sessão",
   },
   en: {
     "footer.made_by": "made by",
@@ -176,6 +181,7 @@ export const translations = {
     "game.starting_voting": "Starting...",
     "game.waiting_host_vote": "Wait for host to start voting...",
     "game.eliminated": "❌",
+    "game.ready_to_vote": "Ready to Vote",
 
     // Voting
     "voting.title": "Round {0} - Voting",
@@ -184,6 +190,7 @@ export const translations = {
     "voting.most_voted_label": "The most voted was:",
     "voting.result_impostor": "✅ WAS THE IMPOSTOR! You won!",
     "voting.result_innocent": "🚫 Was eliminated! Was not the impostor.",
+    "voting.result_selected": "Was selected by majority!",
     "voting.no_votes": "No one was voted as impostor",
     "voting.processing": "Processing votes...",
     "voting.next_round": "Go to Next Round",
@@ -212,6 +219,9 @@ export const translations = {
     "results.home": "Home",
     "results.play_again": "Play Again",
     "results.unknown": "Unknown",
+    "results.ranking_title": "Final Ranking",
+    "results.session_ended": "Session Ended",
+    "results.end_session": "End Session",
   },
 } as const;
 

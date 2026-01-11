@@ -14,6 +14,7 @@ export {
   getRoomIdByCode,
   updateRoomHost,
   deleteRoom,
+  updateRoomStatus,
   subscribeToRoom,
 } from "./rooms";
 
