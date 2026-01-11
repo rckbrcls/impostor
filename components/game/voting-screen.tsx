@@ -122,12 +122,12 @@ export function VotingScreen({
     }
   }, [votes, currentPlayer?.id])
 
-  // Process results when all players voted (only host processes)
+  // Process results when all players voted (all players process to show results)
   useEffect(() => {
-    if (votes.length === totalActivePlayers && votes.length > 0 && !isProcessing && !revealResult && isHost) {
+    if (votes.length === totalActivePlayers && votes.length > 0 && !isProcessing && !revealResult) {
       processVotingResults()
     }
-  }, [votes, totalActivePlayers, isProcessing, revealResult, isHost])
+  }, [votes, totalActivePlayers, isProcessing, revealResult])
 
   // Count votes for each player
   const getPlayerVoteCount = (playerId: string) => {
