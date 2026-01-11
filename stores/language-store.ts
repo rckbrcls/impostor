@@ -105,6 +105,17 @@ export const translations = {
     "voting.progress": "({0}/{1} votos)",
     "voting.all_voted": "Todos votaram! Processando resultados...",
 
+    // Vote Conclusion
+    "vote_conclusion.title": "Conclusão do Voto",
+    "vote_conclusion.subtitle": "Veja se o seu voto foi correto",
+    "vote_conclusion.you_voted_for": "Você votou em:",
+    "vote_conclusion.impostor_found": "ERA O IMPOSTOR!",
+    "vote_conclusion.not_impostor": "NÃO era o impostor.",
+    "vote_conclusion.skipped_or_action":
+      "Você pulou ou votou para pular/encerrar.",
+    "vote_conclusion.continue_to_results": "Continuar para Resultados",
+    "vote_conclusion.waiting_for_host": "Aguardando o host continuar...",
+
     // Results
     "results.impostor_won": "O Impostor Venceu!",
     "results.players_won": "Jogadores Venceram!",
@@ -218,6 +229,16 @@ export const translations = {
     "voting.waiting_players": "Waiting: {0}",
     "voting.progress": "({0}/{1} votes)",
     "voting.all_voted": "All voted! Processing results...",
+
+    // Vote Conclusion
+    "vote_conclusion.title": "Vote Conclusion",
+    "vote_conclusion.subtitle": "See if your vote was correct",
+    "vote_conclusion.you_voted_for": "You voted for:",
+    "vote_conclusion.impostor_found": "WAS THE IMPOSTOR!",
+    "vote_conclusion.not_impostor": "Was NOT the impostor.",
+    "vote_conclusion.skipped_or_action": "You skipped or voted for action.",
+    "vote_conclusion.continue_to_results": "Continue to Results",
+    "vote_conclusion.waiting_for_host": "Waiting for host to continue...",
 
     // Results
     "results.impostor_won": "The Impostor Won!",
