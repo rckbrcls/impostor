@@ -21,8 +21,10 @@ export default function Home() {
   return (
     <main className="min-h-full p-4 flex items-center justify-center">
       <div className="w-full sm:flex flex-col justify-between items-center max-w-3xl space-y-8">
-        {/* Header */}
-        <div className="text-center space-y-0">
+
+
+        {/* Action Buttons */}
+        <div className="space-y-4 text-center">
           <div className="flex flex-col items-center justify-center">
             <Image
               src="/assets/impostor.png"
@@ -33,10 +35,6 @@ export default function Home() {
               className="object-contain"
             />
           </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="space-y-4 text-center">
           <p className="font-semibold text-white antialiased">
             {t('home.subtitle')}
           </p>

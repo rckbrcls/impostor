@@ -24,7 +24,7 @@ export function Header() {
   return (
     <>
       {/* Mobile View: Floating Button Only */}
-      <div className="sm:hidden absolute top-4 right-4 z-50">
+      <div className="sm:hidden fixed top-4 right-4 z-50">
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
           <SheetTrigger asChild>
             <Button variant="outline" size="icon">
