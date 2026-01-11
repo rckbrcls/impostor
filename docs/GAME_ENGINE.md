@@ -101,6 +101,19 @@ type ViewPhase =
   | "room_ended"; // Sessão encerrada
 ```
 
+### Lógica de ViewPhase
+
+| ViewPhase         | Condição                        |
+| :---------------- | :------------------------------ |
+| `joining`         | Sem sala ou sem jogador atual   |
+| `lobby`           | Room status = `waiting`         |
+| `reveal`          | Game status = `reveal`          |
+| `voting`          | Game status = `voting`          |
+| `vote_result`     | Game status = `vote_result`     |
+| `vote_conclusion` | Game status = `vote_conclusion` |
+| `game_over`       | Game status = `game_over`       |
+| `room_ended`      | Room status = `game_finished`   |
+
 ### Resultado de Transição
 
 ```typescript

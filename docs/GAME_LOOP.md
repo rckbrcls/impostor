@@ -21,6 +21,57 @@ O jogo navega por dois tipos de estados principais:
 1. **Room Status** (Status da Sala): Ciclo de vida da sessão (`waiting` -> `playing` -> `game_finished`).
 2. **Game Status** (Status do Jogo): Ciclo de uma partida específica (`reveal` -> `voting` -> `vote_result` -> `vote_conclusion` -> `game_over`).
 
+### Diagrama de Fluxo
+
+```mermaid
+stateDiagram-v2
+    [*] --> Room_Waiting: Criar Sala
+
+    state "Room: Waiting" as Room_Waiting {
+        [*] --> Lobby
+    }
+
+    Room_Waiting --> Room_Playing: Host clica "Iniciar Jogo"
+
+    state "Room: Playing" as Room_Playing {
+        [*] --> Game_Reveal: Criar Jogo
+
+        state "Game: Reveal" as Game_Reveal {
+            [*] --> ShowRoleAndWord
+            ShowRoleAndWord --> Game_Voting: Players clicam "Pronto" (Ack Local)
+        }
+
+        state "Game: Voting" as Game_Voting {
+            [*] --> CastingVotes
+            CastingVotes --> Game_VoteResult: Todos votaram
+        }
+
+        state "Game: VoteResult" as Game_VoteResult {
+            [*] --> ShowResults
+            ShowResults --> Game_VoteConclusion: Host clica "Próximo" / "Encerrar"
+        }
+
+        state "Game: VoteConclusion" as Game_VoteConclusion {
+            [*] --> ShowIndividualFeedback
+            ShowIndividualFeedback --> AwardPoints: Calcular Pontos
+            AwardPoints --> Game_Voting: Host clica "Continuar" (Novo Round)
+            AwardPoints --> Game_GameOver: Impostor Pego OU Impostor Vence OU Host Encerra
+        }
+
+        state "Game: GameOver" as Game_GameOver {
+            [*] --> ShowGameWinner
+            ShowGameWinner --> Game_Reveal: Host clica "Jogar Novamente"
+        }
+    }
+
+    Room_Playing --> Room_GameFinished: Host clica "Encerrar Sessão"
+
+    state "Room: GameFinished" as Room_GameFinished {
+        [*] --> ShowSessionStats
+        ShowSessionStats --> [*]: Inicio
+    }
+```
+
 ---
 
 ## 2. Progressão das Telas (Screen Flow)
@@ -114,6 +165,19 @@ Abaixo detalhamos cada etapa do fluxo do usuário, conectando a **Fase Visual (`
     - Cria novo round, muda status para `voting` (game loop reinicia no passo 4, mas sem reveal).
   - **Se o jogo acaba**: Chama `endGame(winner)`.
     - Muda status para `game_over`.
+
+#### Sistema de Pontuação
+
+Os pontos são atribuídos nesta tela quando o host avança:
+
+| Evento                              | Pontos | Descrição                                        |
+| :---------------------------------- | -----: | :----------------------------------------------- |
+| **Voto Correto**                    |    +10 | Votar no impostor real                           |
+| **Impostor Sobrevive à Rodada**     |     +5 | Impostor ganha pontos por cada rodada que escapa |
+| **Jogadores Vencem (Capturam)**     |    +20 | Bônus para todos os inocentes                    |
+| **Impostor Vence (1v1 ou Votação)** |    +20 | Bônus para o impostor                            |
+
+_A lógica reside em `components/game/vote-conclusion-screen.tsx` na função `handleContinue()`._
 
 ### 7. Fim de Jogo (Game Over)
 
