@@ -42,6 +42,7 @@ export default function RoomPage() {
 
   // Type cast is needed because Supabase returns nullable fields
   const room = roomData as Room | undefined
+  console.log('[DEBUG RoomPage] Room query:', { roomData, isLoadingRoom, roomError, roomId: room?.id })
 
   // Query for players (only when room exists)
   const {
@@ -54,14 +55,18 @@ export default function RoomPage() {
   // Ensure players is always an array (handle null/undefined from query)
   // Type cast is needed because Supabase returns nullable fields
   const players = (playersData ?? []) as Player[]
+  console.log('[DEBUG RoomPage] Players query:', { playersData, isLoadingPlayers, playersCount: players.length })
+  console.log('[DEBUG RoomPage] Players details:', players.map(p => ({ id: p.id, name: p.name, client_id: p.client_id })))
 
   // Find current player
   const currentPlayer = players.find((p) => p.client_id === clientId) ?? null
   const isHost = room?.host_id === clientId
+  console.log('[DEBUG RoomPage] Current player:', { currentPlayer, clientId, isHost })
 
   // Subscribe to realtime updates
   useRoomSubscription(room?.id)
   usePlayersSubscription(room?.id)
+  console.log('[DEBUG RoomPage] Subscriptions active for roomId:', room?.id)
 
   // Handle navigation on error
   useEffect(() => {
@@ -72,19 +77,26 @@ export default function RoomPage() {
 
   // Determine phase based on room status and player state
   useEffect(() => {
-    if (!room) return
-
-    if (!currentPlayer) {
-      setPhase('joining')
-    } else if (room.status === 'ended') {
-      setPhase('ended')
-    } else if (room.status === 'voting') {
-      setPhase('voting')
-    } else if (room.status === 'playing') {
-      setPhase('playing')
-    } else {
-      setPhase('lobby')
+    console.log('[DEBUG RoomPage] Phase effect running:', { room, currentPlayer })
+    if (!room) {
+      console.log('[DEBUG RoomPage] No room, not setting phase')
+      return
     }
+
+    let newPhase: GamePhase
+    if (!currentPlayer) {
+      newPhase = 'joining'
+    } else if (room.status === 'ended') {
+      newPhase = 'ended'
+    } else if (room.status === 'voting') {
+      newPhase = 'voting'
+    } else if (room.status === 'playing') {
+      newPhase = 'playing'
+    } else {
+      newPhase = 'lobby'
+    }
+    console.log('[DEBUG RoomPage] Setting phase to:', newPhase, '(current:', phase, ')')
+    setPhase(newPhase)
   }, [room, currentPlayer])
 
   const isLoading = isLoadingRoom || (!!room && isLoadingPlayers)

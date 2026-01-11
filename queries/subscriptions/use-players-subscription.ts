@@ -6,6 +6,11 @@ import useSupabaseBrowser from "@/lib/supabase/browser";
 export function usePlayersSubscription(roomId: string | undefined) {
   const supabase = useSupabaseBrowser();
 
+  console.log(
+    "[DEBUG usePlayersSubscription] Hook called with roomId:",
+    roomId
+  );
+
   useSubscription(
     roomId ? supabase : null,
     `players-${roomId ?? "none"}`,
@@ -18,8 +23,16 @@ export function usePlayersSubscription(roomId: string | undefined) {
     ["id"],
     {
       callback: (payload) => {
-        console.log("Players realtime update:", payload);
+        console.log(
+          "[DEBUG usePlayersSubscription] Realtime update received:",
+          payload
+        );
       },
     }
+  );
+
+  console.log(
+    "[DEBUG usePlayersSubscription] Subscription configured for channel:",
+    `players-${roomId ?? "none"}`
   );
 }
