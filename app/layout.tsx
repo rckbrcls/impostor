@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter, Fredoka } from "next/font/google";
 import "./globals.css";
 
-import { LanguageProvider } from "@/components/language-context";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -27,7 +26,7 @@ const fredoka = Fredoka({
 });
 
 export const metadata: Metadata = {
-  title: "Impostor",
+  title: "Duplizen",
   description: "Find the impostor among your friends!",
 };
 
@@ -48,13 +47,11 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <LanguageProvider>
-              <Header />
-              <main className="flex-1 w-full overflow-y-auto">
-                {children}
-              </main>
-              <Footer />
-            </LanguageProvider>
+            <Header />
+            <main className="flex-1 w-full overflow-y-auto">
+              {children}
+            </main>
+            <Footer />
           </ThemeProvider>
         </body>
       </html>

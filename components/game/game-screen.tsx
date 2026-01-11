@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { type Player, type Room } from '@/lib/supabase'
 import { getClientId } from '@/lib/game-utils'
 import { Vote } from 'lucide-react'
-import { useLanguage } from '@/components/language-context'
+import { useLanguage } from '@/stores/language-store'
 import { useUpdateRoomStatus } from '@/queries'
 
 interface GameScreenProps {

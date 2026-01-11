@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { LanguageSwitcher } from '@/components/language-switcher'
-import { useLanguage } from '@/components/language-context'
+import { useLanguage } from '@/stores/language-store'
 import { ModeToggle } from '@/components/mode-toggle'
 import { Home, Menu } from 'lucide-react'
 import {

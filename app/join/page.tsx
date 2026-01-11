@@ -2,7 +2,7 @@
 
 import { JoinRoomForm } from '@/components/game/join-room-form'
 import { Button } from '@/components/ui/button'
-import { useLanguage } from '@/components/language-context'
+import { useLanguage } from '@/stores/language-store'
 import Link from 'next/link'
 
 export default function JoinPage() {

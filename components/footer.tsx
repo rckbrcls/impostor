@@ -1,6 +1,6 @@
 'use client';
 
-import { useLanguage } from '@/components/language-context';
+import { useLanguage } from '@/stores/language-store';
 
 export function Footer() {
   const { t } = useLanguage();

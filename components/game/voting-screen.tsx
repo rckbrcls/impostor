@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { SelectionGroup, SelectionItem } from '@/components/ui/selection-card'
 import { Check, User, Flag, Loader2, Play } from 'lucide-react'
-import { useLanguage } from '@/components/language-context'
+import { useLanguage } from '@/stores/language-store'
 import { useQuery } from '@supabase-cache-helpers/postgrest-react-query'
 import {
   getVotesByRoomRound,

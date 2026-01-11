@@ -6,7 +6,7 @@ import { getClientId } from '@/lib/game-utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Trophy, Home, RotateCcw, Skull, Users } from 'lucide-react'
-import { useLanguage } from '@/components/language-context'
+import { useLanguage } from '@/stores/language-store'
 import {
   useDeleteVotesByRoom,
   useResetPlayersForGame,

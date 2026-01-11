@@ -8,7 +8,7 @@ import { getRandomWord } from '@/lib/words'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Copy, Check, Play, Users } from 'lucide-react'
-import { useLanguage } from '@/components/language-context'
+import { useLanguage } from '@/stores/language-store'
 import {
   useDeleteVotesByRoom,
   useResetPlayersForRound,

@@ -4,7 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { useLanguage } from '@/components/language-context'
+import { useLanguage } from '@/stores/language-store'
 
 export default function Home() {
   const { t } = useLanguage()

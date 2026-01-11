@@ -17,7 +17,7 @@ import { GameScreen } from '@/components/game/game-screen'
 import { VotingScreen } from '@/components/game/voting-screen'
 import { ResultsScreen } from '@/components/game/results-screen'
 import { JoinRoomForm } from '@/components/game/join-room-form'
-import { useLanguage } from '@/components/language-context'
+import { useLanguage } from '@/stores/language-store'
 import { Skeleton } from '@/components/ui/skeleton'
 
 type GamePhase = 'joining' | 'lobby' | 'playing' | 'voting' | 'ended'
