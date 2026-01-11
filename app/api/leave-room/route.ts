@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import useSupabaseServer from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,10 +12,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = await useSupabaseServer();
 
     // Delete player
     await supabase.from("players").delete().eq("id", playerId);

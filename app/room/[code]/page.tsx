@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import useSupabaseBrowser from '@/lib/supabase/browser'
 import { getRoomByCode, getPlayersByRoom } from '@/queries'
@@ -217,26 +217,56 @@ export default function RoomPage() {
     }
   }, [roomError, router])
 
-  // Cleanup player when browser/tab is closed
+  // Refs to track current state for cleanup
+  const roomRef = useRef<Room | null>(null)
+  const playerRef = useRef<Player | null>(null)
+
+  // Update refs
   useEffect(() => {
-    if (!currentPlayer || !room?.id) return
+    roomRef.current = room
+    // Find current player in the updated list
+    const p = players.find((p) => p.client_id === clientId) ?? null
+    playerRef.current = p
+  }, [room, players, clientId])
 
-    const handleBeforeUnload = () => {
-      navigator.sendBeacon(
-        '/api/leave-room',
-        JSON.stringify({
-          playerId: currentPlayer.id,
-          roomId: room.id,
-        })
-      )
+  // Cleanup player when browser/tab is closed OR component unmounts
+  useEffect(() => {
+    const handleLeave = () => {
+      const roomToRemove = roomRef.current
+      const playerToRemove = playerRef.current
+
+      if (!roomToRemove?.id || !playerToRemove?.id) return
+
+      const data = {
+        playerId: playerToRemove.id,
+        roomId: roomToRemove.id,
+      }
+
+      // Use fetch with keepalive for more reliable execution during unloads/navigation
+      // sendBeacon can have issues with headers or be tricky to debug
+      fetch('/api/leave-room', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+        keepalive: true,
+      }).catch((err) => console.error('Failed to leave room:', err))
     }
 
-    window.addEventListener('beforeunload', handleBeforeUnload)
+    // Handle browser close / refresh
+    window.addEventListener('beforeunload', handleLeave)
 
+    // Handle mobile tab close / app switch (iOS Safari specificity)
+    window.addEventListener('pagehide', handleLeave)
+
+    // Handle component unmount (SPA navigation)
     return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload)
+      window.removeEventListener('beforeunload', handleLeave)
+      window.removeEventListener('pagehide', handleLeave)
+      handleLeave()
     }
-  }, [currentPlayer, room?.id])
+  }, [])
 
   // Determine phase based on game status
   useEffect(() => {
