@@ -249,7 +249,7 @@ export function VotingScreen({
 
       // Update game with new round number and back to playing status
       await updateGameRound(game.id, nextRoundNumber)
-      await updateGameStatus(game.id, 'playing')
+      await updateGameStatus(game.id, 'voting')
 
       onRoundEnd()
     } catch (error) {

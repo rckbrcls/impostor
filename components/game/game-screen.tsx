@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import useSupabaseBrowser from '@/lib/supabase/browser'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -10,7 +10,8 @@ import {
   type Game,
   type Round,
   type GamePlayerWithPlayer,
-  updateGameStatus
+  updateGameStatus,
+  getRoundsByGame
 } from '@/lib/supabase'
 import { getClientId } from '@/lib/game-utils'
 import { Vote } from 'lucide-react'
@@ -24,7 +25,7 @@ interface GameScreenProps {
   currentPlayer: Player | null
   currentGamePlayer: { is_impostor: boolean } | null
   isHost: boolean
-  onStartVoting: () => void
+  onReady: () => void
 }
 
 export function GameScreen({
@@ -35,30 +36,30 @@ export function GameScreen({
   currentPlayer,
   currentGamePlayer,
   isHost,
-  onStartVoting
+  onReady
 }: GameScreenProps) {
   const supabase = useSupabaseBrowser()
   const clientId = getClientId()
   const isImpostor = currentGamePlayer?.is_impostor ?? false
   const { t } = useLanguage()
-  const [isStartingVote, setIsStartingVote] = useState(false)
 
   // Get eliminated players from previous rounds
-  const eliminatedPlayerIds = new Set<string>()
-  // Note: We'd need to track eliminated players differently now
-  // For simplicity, we'll check the rounds table for eliminated_player_id
+  const [eliminatedPlayerIds, setEliminatedPlayerIds] = useState<Set<string>>(new Set())
 
-  const handleStartVoting = async () => {
-    setIsStartingVote(true)
-    try {
-      await updateGameStatus(game.id, 'voting')
-      onStartVoting()
-    } catch (error) {
-      console.error('Erro ao iniciar votação:', error)
-    } finally {
-      setIsStartingVote(false)
+  useEffect(() => {
+    async function fetchEliminatedPlayers() {
+      const { data: rounds } = await getRoundsByGame(game.id)
+      const eliminated = new Set<string>()
+      rounds.forEach((r) => {
+        if (r.eliminated_player_id) {
+          eliminated.add(r.eliminated_player_id)
+        }
+      })
+      setEliminatedPlayerIds(eliminated)
     }
-  }
+
+    fetchEliminatedPlayers()
+  }, [game.id, game.current_round])
 
   return (
     <Card className="w-full max-w-md mx-auto">
@@ -125,21 +126,14 @@ export function GameScreen({
           </div>
         </div>
 
-        {/* Voting button for host */}
-        {isHost ? (
-          <Button
-            className="w-full"
-            onClick={handleStartVoting}
-            disabled={isStartingVote}
-          >
-            <Vote className="mr-2 size-4" />
-            {isStartingVote ? t('game.starting_voting') : t('game.start_voting')}
-          </Button>
-        ) : (
-          <p className="text-center text-sm text-muted-foreground">
-            {t('game.waiting_host_vote')}
-          </p>
-        )}
+        {/* Ready button for all players */}
+        <Button
+          className="w-full"
+          onClick={onReady}
+        >
+          <Vote className="mr-2 size-4" />
+          {t('game.start_voting')}
+        </Button>
       </CardContent>
     </Card>
   )

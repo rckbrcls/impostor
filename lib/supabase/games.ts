@@ -12,7 +12,7 @@ export async function createGame(roomId: string, word: string) {
     .insert({
       room_id: roomId,
       word,
-      status: "playing",
+      status: "voting",
       current_round: 1,
     })
     .select()

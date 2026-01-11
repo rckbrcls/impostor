@@ -268,7 +268,10 @@ export default function RoomPage() {
     }
   }, [])
 
-  // Determine phase based on game status
+  // View state for local user (seeing role vs voting)
+  const [viewState, setViewState] = useState<'role' | 'voting'>('role')
+
+  // Calculate phase
   useEffect(() => {
     if (!room) return
 
@@ -279,13 +282,19 @@ export default function RoomPage() {
       newPhase = 'lobby'
     } else if (game.status === 'ended') {
       newPhase = 'ended'
-    } else if (game.status === 'voting') {
-      newPhase = 'voting'
     } else {
-      newPhase = 'playing'
+      // Treat 'playing' and 'voting' as the same phase effectively
+      newPhase = 'voting'
     }
     setPhase(newPhase)
   }, [room, currentPlayer, game])
+
+  // Reset view state when round changes
+  useEffect(() => {
+    if (currentRound?.id) {
+      setViewState('role')
+    }
+  }, [currentRound?.id])
 
   const isLoading = isLoadingRoom || (!!room && isLoadingPlayers)
 
@@ -313,7 +322,7 @@ export default function RoomPage() {
         />
       )}
 
-      {phase === 'playing' && game && currentRound && (
+      {phase === 'voting' && game && currentRound && viewState === 'role' && (
         <GameScreen
           room={room}
           game={game}
@@ -322,11 +331,11 @@ export default function RoomPage() {
           currentPlayer={currentPlayer}
           currentGamePlayer={currentGamePlayer ?? null}
           isHost={isHost}
-          onStartVoting={fetchGameData}
+          onReady={() => setViewState('voting')}
         />
       )}
 
-      {phase === 'voting' && game && currentRound && (
+      {phase === 'voting' && game && currentRound && viewState === 'voting' && (
         <VotingScreen
           room={room}
           game={game}
