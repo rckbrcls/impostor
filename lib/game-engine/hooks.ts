@@ -54,7 +54,7 @@ function calculateViewPhase(
   // Map game status to view phase
   switch (game.status) {
     case "reveal":
-      return "reveal";
+      return hasAckedRole ? "waiting_for_start" : "reveal";
     case "voting":
       return "voting";
     case "vote_result":

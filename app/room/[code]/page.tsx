@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useGameLoop } from '@/lib/game-engine'
 import { Lobby } from '@/components/game/lobby'
 import { GameScreen } from '@/components/game/game-screen'
+import { WaitingForPlayersScreen } from '@/components/game/waiting-for-players-screen'
 import { VotingScreen } from '@/components/game/voting-screen'
 import { VoteResultScreen } from '@/components/game/vote-result-screen'
 import { VoteConclusionScreen } from '@/components/game/vote-conclusion-screen'
@@ -93,6 +94,13 @@ export default function RoomPage() {
           currentGamePlayer={currentGamePlayer ?? null}
           isHost={isHost}
           onReady={acknowledgeRole}
+        />
+      )}
+
+      {viewPhase === 'waiting_for_start' && (
+        <WaitingForPlayersScreen
+          gamePlayers={gamePlayers}
+          isHost={isHost}
           onAdvanceToVoting={advanceToVoting}
         />
       )}

@@ -109,11 +109,12 @@ Abaixo detalhamos cada etapa do fluxo do usuário, conectando a **Fase Visual (`
   - Botão "Pronto" / "Entendido".
 - **Ação do Jogador**: Clica em "Pronto".
   - Chama: `acknowledgeRole()` (Local + DB).
-  - **Lógica**: O jogador entra em estado de espera ("Aguardando outros jogadores").
+  - **Lógica**: O jogador muda localmente para a ViewPhase `waiting_for_start` e aguarda.
+- **Transição Individual**: Jogador vê `WaitingForPlayersScreen.tsx`.
 - **Gatilho de Transição**: Quando **todos** os jogadores confirmarem (host detecta).
   - Chama: `advanceToVoting()`.
   - **Lógica**: Muda status do jogo para `voting`.
-- **Transição**: Todos os jogadores vão para `voting` simultaneamente.
+- **Transição Geral**: Todos os jogadores vão para `voting` simultaneamente.
 
 ### 4. Votação (Voting)
 
