@@ -5,13 +5,21 @@ import { useParams, useRouter } from 'next/navigation'
 import useSupabaseBrowser from '@/lib/supabase/browser'
 import { getRoomByCode, getPlayersByRoom } from '@/queries'
 import { getClientId } from '@/lib/game-utils'
-import { type Player, type Room } from '@/lib/supabase'
+import {
+  type Player,
+  type Room,
+  type Game,
+  type Round,
+  type GamePlayerWithPlayer,
+  getActiveGame,
+  getCurrentRound,
+  getGamePlayers
+} from '@/lib/supabase'
 import { Lobby } from '@/components/game/lobby'
 import { GameScreen } from '@/components/game/game-screen'
 import { VotingScreen } from '@/components/game/voting-screen'
 import { ResultsScreen } from '@/components/game/results-screen'
 import { JoinRoomForm } from '@/components/game/join-room-form'
-import { useLanguage } from '@/stores/language-store'
 import { Skeleton } from '@/components/ui/skeleton'
 
 type GamePhase = 'joining' | 'lobby' | 'playing' | 'voting' | 'ended'
@@ -23,11 +31,13 @@ export default function RoomPage() {
 
   const supabase = useSupabaseBrowser()
   const clientId = getClientId()
-  const { t } = useLanguage()
 
   const [phase, setPhase] = useState<GamePhase>('joining')
   const [room, setRoom] = useState<Room | null>(null)
   const [players, setPlayers] = useState<Player[]>([])
+  const [game, setGame] = useState<Game | null>(null)
+  const [currentRound, setCurrentRound] = useState<Round | null>(null)
+  const [gamePlayers, setGamePlayers] = useState<GamePlayerWithPlayer[]>([])
   const [isLoadingRoom, setIsLoadingRoom] = useState(true)
   const [isLoadingPlayers, setIsLoadingPlayers] = useState(true)
   const [roomError, setRoomError] = useState<boolean>(false)
@@ -59,17 +69,39 @@ export default function RoomPage() {
     }
   }, [supabase, room?.id])
 
+  // Fetch active game and related data
+  const fetchGameData = useCallback(async () => {
+    if (!room?.id) return
+
+    const { data: activeGame } = await getActiveGame(room.id)
+    setGame(activeGame)
+
+    if (activeGame) {
+      // Fetch game players
+      const { data: gp } = await getGamePlayers(activeGame.id)
+      setGamePlayers(gp || [])
+
+      // Fetch current round
+      const { data: round } = await getCurrentRound(activeGame.id, activeGame.current_round)
+      setCurrentRound(round)
+    } else {
+      setGamePlayers([])
+      setCurrentRound(null)
+    }
+  }, [room?.id])
+
   // Initial fetch
   useEffect(() => {
     fetchRoom()
   }, [fetchRoom])
 
-  // Fetch players when room is available
+  // Fetch players and game when room is available
   useEffect(() => {
     if (room?.id) {
       fetchPlayers()
+      fetchGameData()
     }
-  }, [room?.id, fetchPlayers])
+  }, [room?.id, fetchPlayers, fetchGameData])
 
   // Realtime subscription for room
   useEffect(() => {
@@ -121,13 +153,62 @@ export default function RoomPage() {
     }
   }, [supabase, room?.id, fetchPlayers])
 
-  console.log('[DEBUG RoomPage] Room:', { room, isLoadingRoom, roomError })
-  console.log('[DEBUG RoomPage] Players:', { players, isLoadingPlayers, playersCount: players.length })
+  // Realtime subscription for games
+  useEffect(() => {
+    if (!room?.id) return
+
+    const channel = supabase
+      .channel(`games-${room.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'games',
+          filter: `room_id=eq.${room.id}`,
+        },
+        () => {
+          fetchGameData()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [supabase, room?.id, fetchGameData])
+
+  // Realtime subscription for rounds
+  useEffect(() => {
+    if (!game?.id) return
+
+    const channel = supabase
+      .channel(`rounds-${game.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'rounds',
+          filter: `game_id=eq.${game.id}`,
+        },
+        () => {
+          fetchGameData()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [supabase, game?.id, fetchGameData])
 
   // Find current player
   const currentPlayer = players.find((p) => p.client_id === clientId) ?? null
   const isHost = room?.host_id === clientId
-  console.log('[DEBUG RoomPage] Current player:', { currentPlayer, clientId, isHost })
+
+  // Find current game player info
+  const currentGamePlayer = gamePlayers.find((gp) => gp.player_id === currentPlayer?.id)
 
   // Handle navigation on error
   useEffect(() => {
@@ -141,7 +222,6 @@ export default function RoomPage() {
     if (!currentPlayer || !room?.id) return
 
     const handleBeforeUnload = () => {
-      // Use sendBeacon for reliable cleanup on page close
       navigator.sendBeacon(
         '/api/leave-room',
         JSON.stringify({
@@ -158,29 +238,24 @@ export default function RoomPage() {
     }
   }, [currentPlayer, room?.id])
 
-  // Determine phase based on room status and player state
+  // Determine phase based on game status
   useEffect(() => {
-    console.log('[DEBUG RoomPage] Phase effect running:', { room, currentPlayer })
-    if (!room) {
-      console.log('[DEBUG RoomPage] No room, not setting phase')
-      return
-    }
+    if (!room) return
 
     let newPhase: GamePhase
     if (!currentPlayer) {
       newPhase = 'joining'
-    } else if (room.status === 'ended') {
-      newPhase = 'ended'
-    } else if (room.status === 'voting') {
-      newPhase = 'voting'
-    } else if (room.status === 'playing') {
-      newPhase = 'playing'
-    } else {
+    } else if (!game) {
       newPhase = 'lobby'
+    } else if (game.status === 'ended') {
+      newPhase = 'ended'
+    } else if (game.status === 'voting') {
+      newPhase = 'voting'
+    } else {
+      newPhase = 'playing'
     }
-    console.log('[DEBUG RoomPage] Setting phase to:', newPhase, '(current:', phase, ')')
     setPhase(newPhase)
-  }, [room, currentPlayer])
+  }, [room, currentPlayer, game])
 
   const isLoading = isLoadingRoom || (!!room && isLoadingPlayers)
 
@@ -204,32 +279,44 @@ export default function RoomPage() {
         <Lobby
           room={room}
           players={players}
-          onGameStart={() => setPhase('playing')}
+          onGameStart={fetchGameData}
         />
       )}
 
-      {phase === 'playing' && (
+      {phase === 'playing' && game && currentRound && (
         <GameScreen
           room={room}
-          players={players}
+          game={game}
+          currentRound={currentRound}
+          gamePlayers={gamePlayers}
           currentPlayer={currentPlayer}
+          currentGamePlayer={currentGamePlayer ?? null}
           isHost={isHost}
-          onStartVoting={() => setPhase('voting')}
+          onStartVoting={fetchGameData}
         />
       )}
 
-      {phase === 'voting' && (
+      {phase === 'voting' && game && currentRound && (
         <VotingScreen
           room={room}
-          players={players}
+          game={game}
+          currentRound={currentRound}
+          gamePlayers={gamePlayers}
           currentPlayer={currentPlayer}
           isHost={isHost}
-          onNextRound={() => setPhase('playing')}
-          onEndGame={() => setPhase('ended')}
+          onRoundEnd={fetchGameData}
         />
       )}
 
-      {phase === 'ended' && <ResultsScreen room={room} players={players} />}
+      {phase === 'ended' && game && (
+        <ResultsScreen
+          room={room}
+          game={game}
+          gamePlayers={gamePlayers}
+          players={players}
+          onPlayAgain={fetchGameData}
+        />
+      )}
     </main>
   )
 }

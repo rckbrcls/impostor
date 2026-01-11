@@ -27,9 +27,7 @@ export async function POST(request: NextRequest) {
       .eq("room_id", roomId);
 
     if (count === 0) {
-      // Delete votes first (FK constraint)
-      await supabase.from("votes").delete().eq("room_id", roomId);
-      // Delete the empty room
+      // Cascade delete will handle games, rounds, votes, game_players
       await supabase.from("rooms").delete().eq("id", roomId);
     }
 

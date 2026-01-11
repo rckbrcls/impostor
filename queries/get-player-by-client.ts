@@ -13,8 +13,6 @@ export function getPlayerByClient(
       room_id,
       client_id,
       name,
-      is_impostor,
-      is_eliminated,
       score,
       joined_at
     `

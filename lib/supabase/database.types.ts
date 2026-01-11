@@ -14,12 +14,81 @@ export type Database = {
   }
   public: {
     Tables: {
+      game_players: {
+        Row: {
+          game_id: string
+          id: string
+          is_impostor: boolean | null
+          player_id: string
+        }
+        Insert: {
+          game_id: string
+          id?: string
+          is_impostor?: boolean | null
+          player_id: string
+        }
+        Update: {
+          game_id?: string
+          id?: string
+          is_impostor?: boolean | null
+          player_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_players_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_players_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      games: {
+        Row: {
+          created_at: string | null
+          current_round: number | null
+          id: string
+          room_id: string
+          status: string | null
+          word: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_round?: number | null
+          id?: string
+          room_id: string
+          status?: string | null
+          word?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          current_round?: number | null
+          id?: string
+          room_id?: string
+          status?: string | null
+          word?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "games_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       players: {
         Row: {
           client_id: string
           id: string
-          is_eliminated: boolean | null
-          is_impostor: boolean | null
           joined_at: string | null
           name: string
           room_id: string | null
@@ -28,8 +97,6 @@ export type Database = {
         Insert: {
           client_id: string
           id?: string
-          is_eliminated?: boolean | null
-          is_impostor?: boolean | null
           joined_at?: string | null
           name: string
           room_id?: string | null
@@ -38,8 +105,6 @@ export type Database = {
         Update: {
           client_id?: string
           id?: string
-          is_eliminated?: boolean | null
-          is_impostor?: boolean | null
           joined_at?: string | null
           name?: string
           room_id?: string | null
@@ -61,71 +126,104 @@ export type Database = {
           created_at: string | null
           host_id: string
           id: string
-          round: number | null
-          status: string | null
-          word: string | null
         }
         Insert: {
           code: string
           created_at?: string | null
           host_id: string
           id?: string
-          round?: number | null
-          status?: string | null
-          word?: string | null
         }
         Update: {
           code?: string
           created_at?: string | null
           host_id?: string
           id?: string
-          round?: number | null
-          status?: string | null
-          word?: string | null
         }
         Relationships: []
+      }
+      rounds: {
+        Row: {
+          created_at: string | null
+          eliminated_player_id: string | null
+          game_id: string
+          id: string
+          majority_action: string | null
+          round_number: number
+        }
+        Insert: {
+          created_at?: string | null
+          eliminated_player_id?: string | null
+          game_id: string
+          id?: string
+          majority_action?: string | null
+          round_number: number
+        }
+        Update: {
+          created_at?: string | null
+          eliminated_player_id?: string | null
+          game_id?: string
+          id?: string
+          majority_action?: string | null
+          round_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rounds_eliminated_player_id_fkey"
+            columns: ["eliminated_player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rounds_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       votes: {
         Row: {
           action_vote: string | null
           created_at: string | null
           id: string
-          impostor_vote: string | null
-          room_id: string
-          round: number
+          is_action_vote: boolean | null
+          round_id: string
+          target_player_id: string | null
           voter_id: string
         }
         Insert: {
           action_vote?: string | null
           created_at?: string | null
           id?: string
-          impostor_vote?: string | null
-          room_id: string
-          round: number
+          is_action_vote?: boolean | null
+          round_id: string
+          target_player_id?: string | null
           voter_id: string
         }
         Update: {
           action_vote?: string | null
           created_at?: string | null
           id?: string
-          impostor_vote?: string | null
-          room_id?: string
-          round?: number
+          is_action_vote?: boolean | null
+          round_id?: string
+          target_player_id?: string | null
           voter_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "votes_impostor_vote_fkey"
-            columns: ["impostor_vote"]
+            foreignKeyName: "votes_round_id_fkey"
+            columns: ["round_id"]
             isOneToOne: false
-            referencedRelation: "players"
+            referencedRelation: "rounds"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "votes_room_id_fkey"
-            columns: ["room_id"]
+            foreignKeyName: "votes_target_player_id_fkey"
+            columns: ["target_player_id"]
             isOneToOne: false
-            referencedRelation: "rooms"
+            referencedRelation: "players"
             referencedColumns: ["id"]
           },
           {

@@ -11,14 +11,17 @@ export async function addPlayer(
   clientId: string,
   name: string
 ) {
-  const { error } = await supabase.from("players").insert({
-    room_id: roomId,
-    client_id: clientId,
-    name,
-    is_impostor: false,
-    score: 0,
-  });
-  return { error };
+  const { data, error } = await supabase
+    .from("players")
+    .insert({
+      room_id: roomId,
+      client_id: clientId,
+      name,
+      score: 0,
+    })
+    .select()
+    .single();
+  return { data: data as Player | null, error };
 }
 
 /**
@@ -36,9 +39,7 @@ export async function removePlayer(playerId: string, roomId: string) {
       .eq("room_id", roomId);
 
     if (count === 0) {
-      // Delete votes first (FK constraint)
-      await supabase.from("votes").delete().eq("room_id", roomId);
-      // Delete the empty room
+      // Delete the empty room (cascade will delete games, rounds, etc.)
       await supabase.from("rooms").delete().eq("id", roomId);
     }
   }
@@ -67,54 +68,69 @@ export async function getPlayerByRoomAndClient(
 ) {
   const { data, error } = await supabase
     .from("players")
-    .select("id")
+    .select("*")
     .eq("room_id", roomId)
     .eq("client_id", clientId)
     .single();
-  return { data: data as { id: string } | null, error };
+  return { data: data as Player | null, error };
 }
 
 /**
- * Update player as impostor
+ * Get player by ID
  */
-export async function updatePlayerAsImpostor(playerId: string) {
+export async function getPlayerById(playerId: string) {
+  const { data, error } = await supabase
+    .from("players")
+    .select("*")
+    .eq("id", playerId)
+    .single();
+  return { data: data as Player | null, error };
+}
+
+/**
+ * Update player score
+ */
+export async function updatePlayerScore(playerId: string, score: number) {
   const { error } = await supabase
     .from("players")
-    .update({ is_impostor: true })
+    .update({ score })
     .eq("id", playerId);
   return { error };
 }
 
 /**
- * Reset all players impostor and eliminated status in a room
+ * Increment player score
  */
-export async function resetPlayersForNewRound(roomId: string) {
-  const { error } = await supabase
+export async function incrementPlayerScore(
+  playerId: string,
+  increment: number
+) {
+  // Get current score first
+  const { data: player } = await supabase
     .from("players")
-    .update({ is_impostor: false, is_eliminated: false })
-    .eq("room_id", roomId);
-  return { error };
+    .select("score")
+    .eq("id", playerId)
+    .single();
+
+  if (player) {
+    const newScore = (player.score || 0) + increment;
+    const { error } = await supabase
+      .from("players")
+      .update({ score: newScore })
+      .eq("id", playerId);
+    return { error };
+  }
+  return { error: null };
 }
 
 /**
- * Reset all players for a new game (including score)
+ * Reset all players' scores in a room
  */
-export async function resetPlayersForNewGame(roomId: string) {
+export async function resetPlayersScores(roomId: string) {
   const { error } = await supabase
     .from("players")
-    .update({ score: 0, is_impostor: false, is_eliminated: false })
+    .update({ score: 0 })
     .eq("room_id", roomId);
-  return { error };
-}
-
-/**
- * Eliminate a player
- */
-export async function eliminatePlayer(playerId: string) {
-  const { error } = await supabase
-    .from("players")
-    .update({ is_eliminated: true })
-    .eq("id", playerId);
   return { error };
 }
 

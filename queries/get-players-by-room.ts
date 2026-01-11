@@ -9,8 +9,6 @@ export function getPlayersByRoom(client: TypedSupabaseClient, roomId: string) {
       room_id,
       client_id,
       name,
-      is_impostor,
-      is_eliminated,
       score,
       joined_at
     `

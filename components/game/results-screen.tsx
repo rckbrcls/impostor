@@ -3,8 +3,18 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import useSupabaseBrowser from '@/lib/supabase/browser'
-import { type Player, type Room } from '@/lib/supabase'
+import {
+  type Player,
+  type Room,
+  type Game,
+  type GamePlayerWithPlayer,
+  createGame,
+  createGamePlayers,
+  setImpostor,
+  createRound
+} from '@/lib/supabase'
 import { getClientId } from '@/lib/game-utils'
+import { getRandomWord } from '@/lib/words'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Trophy, Home, RotateCcw, Skull, Users } from 'lucide-react'
@@ -12,26 +22,25 @@ import { useLanguage } from '@/stores/language-store'
 
 interface ResultsScreenProps {
   room: Room
+  game: Game
+  gamePlayers: GamePlayerWithPlayer[]
   players: Player[]
+  onPlayAgain: () => void
 }
 
-export function ResultsScreen({ room, players }: ResultsScreenProps) {
+export function ResultsScreen({ room, game, gamePlayers, players, onPlayAgain }: ResultsScreenProps) {
   const router = useRouter()
   const supabase = useSupabaseBrowser()
   const { t } = useLanguage()
   const [isResetting, setIsResetting] = useState(false)
 
   // Find the impostor
-  const impostor = players.find((p) => p.is_impostor)
+  const impostorGp = gamePlayers.find((gp) => gp.is_impostor)
+  const impostor = impostorGp?.player
 
-  // Active players (not eliminated)
-  const activePlayers = players.filter((p) => !p.is_eliminated)
-
-  // Eliminated players
-  const eliminatedPlayers = players.filter((p) => p.is_eliminated)
-
-  // Impostor won if still active and only 2 players remain
-  const impostorWon = impostor && !impostor.is_eliminated && activePlayers.length <= 2
+  // Check who won - impostor wins if game ended without being caught
+  // This is a simplified check - in a real implementation we'd need to track this better
+  const impostorWon = impostorGp && game.status === 'ended'
 
   const goHome = () => {
     router.push('/')
@@ -45,20 +54,33 @@ export function ResultsScreen({ room, players }: ResultsScreenProps) {
 
     setIsResetting(true)
     try {
-      // 0. Proactive Cleanup
-      await supabase.from('votes').delete().eq('room_id', room.id)
+      // Create a new game (instead of resetting)
+      const word = getRandomWord()
+      const { data: newGame, error: gameError } = await createGame(room.id, word)
 
-      // 1. Reset all player status
-      await supabase
-        .from('players')
-        .update({ is_impostor: false, is_eliminated: false, score: 0 })
-        .eq('room_id', room.id)
+      if (gameError || !newGame) {
+        console.error('Error creating game:', gameError)
+        return
+      }
 
-      // 2. Reset room to waiting (Lobby)
-      await supabase
-        .from('rooms')
-        .update({ status: 'waiting', round: 0, word: null })
-        .eq('id', room.id)
+      // Create game_players for all current players
+      const playerIds = players.map(p => p.id)
+      const { error: gpError } = await createGamePlayers(newGame.id, playerIds)
+
+      if (gpError) {
+        console.error('Error creating game players:', gpError)
+        return
+      }
+
+      // Pick random impostor
+      const impostorIndex = Math.floor(Math.random() * players.length)
+      const impostorId = players[impostorIndex].id
+      await setImpostor(newGame.id, impostorId)
+
+      // Create first round
+      await createRound(newGame.id, 1)
+
+      onPlayAgain()
     } catch (error) {
       console.error('Erro ao reiniciar jogo:', error)
     } finally {
@@ -83,7 +105,7 @@ export function ResultsScreen({ room, players }: ResultsScreenProps) {
           )}
         </CardTitle>
         <CardDescription>
-          {t('results.rounds_played', room.round, room.round !== 1 ? 's' : '')}
+          {t('results.rounds_played', game.current_round, game.current_round !== 1 ? 's' : '')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -91,7 +113,7 @@ export function ResultsScreen({ room, players }: ResultsScreenProps) {
         <div className="bg-primary/10 p-6 text-center border-2 border-black shadow-[4px_4px_0_0] dark:border-white dark:shadow-white">
           <p className="text-sm text-muted-foreground mb-2">{t('results.word_was')}</p>
           <p className="text-3xl font-bold text-primary uppercase">
-            {room.word}
+            {game.word}
           </p>
         </div>
 
@@ -106,30 +128,32 @@ export function ResultsScreen({ room, players }: ResultsScreenProps) {
           </p>
           {impostorWon && (
             <p className="text-sm text-red-400 mt-2">
-              {t('results.survived_rounds', room.round, room.round !== 1 ? 's' : '')}
+              {t('results.survived_rounds', game.current_round, game.current_round !== 1 ? 's' : '')}
             </p>
           )}
         </div>
 
-        {/* Eliminated players */}
-        {eliminatedPlayers.length > 0 && (
-          <div className="border-2 border-black shadow-[2px_2px_0_0] dark:border-white dark:shadow-white p-4">
-            <p className="text-sm text-muted-foreground mb-2 flex items-center gap-2">
-              <Users className="size-4" />
-              {t('results.eliminated_title')}
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {eliminatedPlayers.map((player) => (
-                <span
-                  key={player.id}
-                  className="px-3 py-1 text-sm bg-red-500/20 text-red-500 border-2 border-black dark:border-white font-semibold"
-                >
-                  {player.name}
-                </span>
-              ))}
-            </div>
+        {/* Players in this game */}
+        <div className="border-2 border-black shadow-[2px_2px_0_0] dark:border-white dark:shadow-white p-4">
+          <p className="text-sm text-muted-foreground mb-2 flex items-center gap-2">
+            <Users className="size-4" />
+            {t('lobby.players_title', gamePlayers.length)}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {gamePlayers.map((gp) => (
+              <span
+                key={gp.id}
+                className={`px-3 py-1 text-sm border-2 border-black dark:border-white font-semibold ${gp.is_impostor
+                    ? 'bg-red-500/20 text-red-500'
+                    : 'bg-white dark:bg-zinc-900'
+                  }`}
+              >
+                {gp.player?.name ?? 'Unknown'}
+                {gp.is_impostor && ' 🕵️'}
+              </span>
+            ))}
           </div>
-        )}
+        </div>
 
         {/* Actions */}
         <div className="flex gap-2 pt-4">

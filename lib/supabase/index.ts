@@ -1,6 +1,6 @@
 // Re-export everything for backward compatibility
 export { supabase } from "./client";
-export type { Room, Player, Vote } from "./types";
+export type { Room, Player, Game, GamePlayer, Round, Vote } from "./types";
 export type { Database } from "./database.types";
 export {
   default as useSupabaseBrowser,
@@ -12,11 +12,6 @@ export {
   createRoom,
   getRoomByCode,
   getRoomIdByCode,
-  updateRoomStatus,
-  updateRoomForGameStart,
-  updateRoomForNextRound,
-  updateRoomEnded,
-  resetRoomToWaiting,
   updateRoomHost,
   deleteRoom,
   subscribeToRoom,
@@ -28,18 +23,52 @@ export {
   removePlayer,
   getPlayersByRoomId,
   getPlayerByRoomAndClient,
-  updatePlayerAsImpostor,
-  resetPlayersForNewRound,
-  resetPlayersForNewGame,
-  eliminatePlayer,
+  getPlayerById,
+  updatePlayerScore,
+  incrementPlayerScore,
+  resetPlayersScores,
   subscribeToPlayers,
 } from "./players";
 
+// Game operations
+export {
+  createGame,
+  getActiveGame,
+  getGameById,
+  updateGameStatus,
+  updateGameRound,
+  endGame,
+  subscribeToGame,
+} from "./games";
+
+// Game player operations
+export {
+  createGamePlayers,
+  setImpostor,
+  getGamePlayers,
+  getGamePlayer,
+  isPlayerImpostor,
+  subscribeToGamePlayers,
+  type GamePlayerWithPlayer,
+} from "./game-players";
+
+// Round operations
+export {
+  createRound,
+  getCurrentRound,
+  getRoundById,
+  updateRoundEliminated,
+  updateRoundMajorityAction,
+  getRoundsByGame,
+  subscribeToRound,
+} from "./rounds";
+
 // Vote operations
 export {
-  getVotesByRoomAndRound,
-  upsertVote,
-  deleteVotesByRoomId,
-  deleteVotesByVoter,
+  getVotesByRound,
+  submitPlayerVote,
+  submitActionVote,
+  deleteVote,
+  calculateVoteResults,
   subscribeToVotes,
 } from "./votes";

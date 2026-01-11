@@ -124,7 +124,7 @@ export const translations = {
     "common.you": "(you)",
 
     // Home
-    "home.title": "🕵️ Impostor",
+    "home.title": "🕵 Impostor",
     "home.subtitle": "Find the impostor among your friends!",
     "home.create_room": "🎮 Create New Room",
     "home.join_room": "🚪 Join a Room",

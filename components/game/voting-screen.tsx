@@ -2,27 +2,51 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import useSupabaseBrowser from '@/lib/supabase/browser'
-import { type Player, type Room, type Vote } from '@/lib/supabase'
+import {
+  type Player,
+  type Room,
+  type Game,
+  type Round,
+  type Vote,
+  type GamePlayerWithPlayer,
+  getVotesByRound,
+  submitPlayerVote,
+  submitActionVote,
+  updateRoundEliminated,
+  updateRoundMajorityAction,
+  updateGameStatus,
+  updateGameRound,
+  createRound,
+  endGame
+} from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { SelectionGroup, SelectionItem } from '@/components/ui/selection-card'
 import { Check, User, Flag, Loader2, Play } from 'lucide-react'
 import { useLanguage } from '@/stores/language-store'
-import { getVotesByRoomRound } from '@/queries'
 
 interface VotingScreenProps {
   room: Room
-  players: Player[]
+  game: Game
+  currentRound: Round
+  gamePlayers: GamePlayerWithPlayer[]
   currentPlayer: Player | null
   isHost: boolean
-  onNextRound: () => void
-  onEndGame: () => void
+  onRoundEnd: () => void
 }
 
 // Vote type: can be a player or an action
 type VoteChoice = { type: 'player'; playerId: string } | { type: 'next_round' } | { type: 'end_game' }
 
-export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound, onEndGame }: VotingScreenProps) {
+export function VotingScreen({
+  room,
+  game,
+  currentRound,
+  gamePlayers,
+  currentPlayer,
+  isHost,
+  onRoundEnd
+}: VotingScreenProps) {
   const supabase = useSupabaseBrowser()
   const [votes, setVotes] = useState<Vote[]>([])
   const [isLoadingVotes, setIsLoadingVotes] = useState(true)
@@ -35,12 +59,19 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
   const [decidedAction, setDecidedAction] = useState<'next_round' | 'end_game' | null>(null)
   const { t } = useLanguage()
 
+  // Find impostor
+  const impostorGamePlayer = gamePlayers.find(gp => gp.is_impostor)
+
+  // Total active players (all game players for now - elimination tracking would need more work)
+  const totalActivePlayers = gamePlayers.length
+
   // Fetch votes
   const fetchVotes = useCallback(async () => {
-    const { data } = await getVotesByRoomRound(supabase, room.id, room.round)
-    setVotes((data ?? []) as Vote[])
+    if (!currentRound?.id) return
+    const { data } = await getVotesByRound(currentRound.id)
+    setVotes(data || [])
     setIsLoadingVotes(false)
-  }, [supabase, room.id, room.round])
+  }, [currentRound?.id])
 
   // Initial fetch
   useEffect(() => {
@@ -49,15 +80,17 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
 
   // Realtime subscription for votes
   useEffect(() => {
+    if (!currentRound?.id) return
+
     const channel = supabase
-      .channel(`votes-${room.id}-${room.round}`)
+      .channel(`votes-${currentRound.id}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'votes',
-          filter: `room_id=eq.${room.id}`,
+          filter: `round_id=eq.${currentRound.id}`,
         },
         () => {
           fetchVotes()
@@ -68,87 +101,59 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [supabase, room.id, room.round, fetchVotes])
-
-  // Safe array operations with null checks
-  const safePlayersArray = players ?? []
-  const impostor = safePlayersArray.find((p) => p.is_impostor)
-  // Active players (not eliminated)
-  const activePlayers = safePlayersArray.filter((p) => !p.is_eliminated)
-  const totalActivePlayers = activePlayers.length
-  const isCurrentPlayerEliminated = currentPlayer?.is_eliminated ?? false
-  const isCurrentPlayerImpostor = currentPlayer?.is_impostor ?? false
-
-  // Players that can receive votes (only not eliminated)
-  const votablePlayers = activePlayers
+  }, [supabase, currentRound?.id, fetchVotes])
 
   // Check if I already voted
   useEffect(() => {
     if (votes && currentPlayer) {
       const myVote = votes.find((v) => v.voter_id === currentPlayer.id)
       if (myVote) {
-        // Reconstruct choice from saved vote
-        if (myVote.impostor_vote) {
-          setMyChoice({ type: 'player', playerId: myVote.impostor_vote })
-        } else if (myVote.action_vote === 'next_round') {
-          setMyChoice({ type: 'next_round' })
-        } else if (myVote.action_vote === 'end_game') {
-          setMyChoice({ type: 'end_game' })
+        if (myVote.is_action_vote) {
+          if (myVote.action_vote === 'next_round') {
+            setMyChoice({ type: 'next_round' })
+          } else if (myVote.action_vote === 'end_game') {
+            setMyChoice({ type: 'end_game' })
+          }
+        } else if (myVote.target_player_id) {
+          setMyChoice({ type: 'player', playerId: myVote.target_player_id })
         }
         setHasVoted(true)
       }
     }
   }, [votes, currentPlayer?.id])
 
-  // Process results when all ACTIVE players voted (only host processes to avoid race conditions)
+  // Process results when all players voted (only host processes)
   useEffect(() => {
-    console.log('[Voting] Check process:', { votesCount: votes.length, totalActivePlayers, isProcessing, revealResult, isHost })
     if (votes.length === totalActivePlayers && votes.length > 0 && !isProcessing && !revealResult && isHost) {
-      console.log('[Voting] All active players voted, host processing results...')
       processVotingResults()
     }
   }, [votes, totalActivePlayers, isProcessing, revealResult, isHost])
 
-  // Count votes for each player (impostor)
-  const getImpostorVoteCount = (playerId: string) => {
-    return votes.filter((v) => v.impostor_vote === playerId).length
+  // Count votes for each player
+  const getPlayerVoteCount = (playerId: string) => {
+    return votes.filter((v) => !v.is_action_vote && v.target_player_id === playerId).length
   }
 
   // Count action votes
   const getActionVoteCount = (action: 'next_round' | 'end_game') => {
-    return votes.filter((v) => v.action_vote === action && !v.impostor_vote).length
+    return votes.filter((v) => v.is_action_vote && v.action_vote === action).length
   }
 
-  // Active players that haven't voted yet
-  const pendingVoters = activePlayers.filter(
-    (p) => !votes.some((v) => v.voter_id === p.id)
+  // Players that haven't voted yet
+  const pendingVoters = gamePlayers.filter(
+    (gp) => !votes.some((v) => v.voter_id === gp.player_id)
   )
 
-  const submitVote = async () => {
-    if (!currentPlayer || !myChoice) return
+  const doSubmitVote = async () => {
+    if (!currentPlayer || !myChoice || !currentRound) return
 
     setIsSubmitting(true)
     try {
-      // Determine what to save based on choice
-      let impostorVote: string | null = null
-      let actionVote: 'next_round' | 'end_game' | null = null
-
       if (myChoice.type === 'player') {
-        impostorVote = myChoice.playerId
-      } else if (myChoice.type === 'next_round') {
-        actionVote = 'next_round'
-      } else if (myChoice.type === 'end_game') {
-        actionVote = 'end_game'
+        await submitPlayerVote(currentRound.id, currentPlayer.id, myChoice.playerId)
+      } else {
+        await submitActionVote(currentRound.id, currentPlayer.id, myChoice.type)
       }
-
-      await supabase.from('votes').upsert({
-        room_id: room.id,
-        round: room.round,
-        voter_id: currentPlayer.id,
-        impostor_vote: impostorVote,
-        action_vote: actionVote,
-      }, { onConflict: 'room_id,round,voter_id' })
-
       setHasVoted(true)
     } catch (error) {
       console.error('Erro ao votar:', error)
@@ -166,12 +171,11 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
     let endGameVotes = 0
 
     for (const vote of votes) {
-      if (vote.impostor_vote) {
-        playerVotes[vote.impostor_vote] = (playerVotes[vote.impostor_vote] || 0) + 1
-      } else if (vote.action_vote === 'next_round') {
-        nextRoundVotes++
-      } else if (vote.action_vote === 'end_game') {
-        endGameVotes++
+      if (vote.is_action_vote) {
+        if (vote.action_vote === 'next_round') nextRoundVotes++
+        else if (vote.action_vote === 'end_game') endGameVotes++
+      } else if (vote.target_player_id) {
+        playerVotes[vote.target_player_id] = (playerVotes[vote.target_player_id] || 0) + 1
       }
     }
 
@@ -185,12 +189,12 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
       }
     }
 
-    // Save info about most voted for display
+    // Find player info
     if (mostVotedId) {
-      const votedPlayer = players.find((p) => p.id === mostVotedId)
+      const votedGp = gamePlayers.find((gp) => gp.player_id === mostVotedId)
       setMostVotedPlayer({
-        player: votedPlayer || null,
-        wasImpostor: votedPlayer?.is_impostor ?? false,
+        player: votedGp?.player || null,
+        wasImpostor: votedGp?.is_impostor ?? false,
       })
     } else {
       setMostVotedPlayer(null)
@@ -201,67 +205,63 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
     // Determine action based on majority
     let action: 'next_round' | 'end_game' | 'eliminate'
 
-    // Combine player votes vs next round votes vs end game votes
     if (endGameVotes > maxVotes && endGameVotes > nextRoundVotes) {
       action = 'end_game'
     } else if (maxVotes > nextRoundVotes && maxVotes > endGameVotes && mostVotedId) {
-      // Majority voted for a player - eliminate or end
       action = 'eliminate'
     } else {
-      // Tie or majority voted for next round - just pass the round
       action = 'next_round'
     }
 
-    // Set decided action (don't execute automatically)
     setDecidedAction(action === 'eliminate' ? 'next_round' : action)
     setIsProcessing(false)
   }
 
   const startNextRound = async () => {
     try {
-      // If someone was voted and wasn't the impostor, eliminate
-      if (mostVotedPlayer?.player && !mostVotedPlayer.wasImpostor) {
-        await supabase
-          .from('players')
-          .update({ is_eliminated: true })
-          .eq('id', mostVotedPlayer.player.id)
-      }
-
-      // If someone was voted AND was the impostor, impostor lost!
+      // If someone was voted and was the impostor, game ends (players win)
       if (mostVotedPlayer?.player && mostVotedPlayer.wasImpostor) {
-        await supabase.from('rooms').update({ status: 'ended' }).eq('id', room.id)
-        onEndGame()
+        await updateRoundEliminated(currentRound.id, mostVotedPlayer.player.id)
+        await endGame(game.id)
+        onRoundEnd()
         return
       }
 
-      // Check how many active players remain after possible elimination
-      const remainingActive = mostVotedPlayer?.player && !mostVotedPlayer.wasImpostor
-        ? activePlayers.filter(p => p.id !== mostVotedPlayer.player!.id).length
-        : activePlayers.length
+      // If someone was voted and wasn't the impostor
+      if (mostVotedPlayer?.player && !mostVotedPlayer.wasImpostor) {
+        await updateRoundEliminated(currentRound.id, mostVotedPlayer.player.id)
 
-      // If only 2 players remain (impostor + 1), impostor wins!
-      if (remainingActive <= 2) {
-        await supabase.from('rooms').update({ status: 'ended' }).eq('id', room.id)
-        onEndGame()
-        return
+        // Check if only 2 players remain (impostor wins)
+        const remainingCount = gamePlayers.length - 1 // -1 for the eliminated player
+        if (remainingCount <= 2) {
+          await endGame(game.id)
+          onRoundEnd()
+          return
+        }
+      } else {
+        // No player eliminated, just action vote
+        await updateRoundMajorityAction(currentRound.id, 'next_round')
       }
 
-      // Update room with new round (same word, same impostor)
-      await supabase
-        .from('rooms')
-        .update({ status: 'playing', round: room.round + 1 })
-        .eq('id', room.id)
+      // Create next round
+      const nextRoundNumber = game.current_round + 1
+      await createRound(game.id, nextRoundNumber)
 
-      onNextRound()
+      // Update game with new round number and back to playing status
+      await updateGameRound(game.id, nextRoundNumber)
+      await updateGameStatus(game.id, 'playing')
+
+      onRoundEnd()
     } catch (error) {
       console.error('Erro ao iniciar próxima rodada:', error)
     }
   }
 
-  const endGame = async () => {
+  const doEndGame = async () => {
     try {
-      await supabase.from('rooms').update({ status: 'ended' }).eq('id', room.id)
-      onEndGame()
+      await updateRoundMajorityAction(currentRound.id, 'end_game')
+      await endGame(game.id)
+      onRoundEnd()
     } catch (error) {
       console.error('Erro ao finalizar jogo:', error)
     }
@@ -269,7 +269,6 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
 
   const canSubmit = myChoice && !hasVoted
 
-  // Check if a player is selected
   const isPlayerSelected = (playerId: string) => {
     return myChoice?.type === 'player' && myChoice.playerId === playerId
   }
@@ -277,20 +276,15 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="text-center">
-        <CardTitle className="text-2xl">{t('voting.title', room.round)}</CardTitle>
+        <CardTitle className="text-2xl">{t('voting.title', game.current_round)}</CardTitle>
         <CardDescription>
-          {revealResult ? (
-            t('voting.desc_reveal')
-          ) : (
-            t('voting.desc_ask')
-          )}
+          {revealResult ? t('voting.desc_reveal') : t('voting.desc_ask')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* If revealing result */}
         {revealResult && (
           <div className="space-y-4">
-            {/* Who was most voted */}
             {mostVotedPlayer?.player ? (
               <div className={`p-6 text-center border-2 border-black shadow-[4px_4px_0_0] dark:border-white dark:shadow-white ${mostVotedPlayer.wasImpostor
                 ? 'bg-green-500/20'
@@ -320,19 +314,12 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
             ) : decidedAction && isHost ? (
               <div className="flex flex-col gap-3">
                 {decidedAction === 'next_round' ? (
-                  <Button
-                    onClick={startNextRound}
-                    className="w-full bg-green-600 hover:bg-green-700"
-                  >
+                  <Button onClick={startNextRound} className="w-full bg-green-600 hover:bg-green-700">
                     <Play className="mr-2 size-4" />
                     {t('voting.next_round')}
                   </Button>
                 ) : (
-                  <Button
-                    onClick={endGame}
-                    variant="destructive"
-                    className="w-full"
-                  >
+                  <Button onClick={doEndGame} variant="destructive" className="w-full">
                     <Flag className="mr-2 size-4" />
                     {t('voting.end_game')}
                   </Button>
@@ -351,28 +338,26 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
         {!revealResult && (
           <>
             <div className="space-y-3">
-              <p className="text-sm font-medium text-center">
-                {t('voting.choose_option')}
-              </p>
+              <p className="text-sm font-medium text-center">{t('voting.choose_option')}</p>
 
-              {/* Section: Vote for player as impostor */}
+              {/* Vote for player */}
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground flex items-center gap-2">
                   {t('voting.vote_impostor_label')}
                 </p>
                 <SelectionGroup>
-                  {votablePlayers.map((player) => (
+                  {gamePlayers.map((gp) => (
                     <SelectionItem
-                      key={player.id}
-                      checked={isPlayerSelected(player.id)}
-                      onChange={() => !hasVoted && setMyChoice({ type: 'player', playerId: player.id })}
+                      key={gp.id}
+                      checked={isPlayerSelected(gp.player_id)}
+                      onChange={() => !hasVoted && setMyChoice({ type: 'player', playerId: gp.player_id })}
                       disabled={hasVoted}
                       className="has-[:checked]:bg-primary/20 has-[:checked]:border-primary/50 dark:has-[:checked]:bg-primary/40"
                       title={
                         <span className="flex items-center gap-2">
                           <User className="size-4" />
-                          {player.name}
-                          {player.id === currentPlayer?.id && (
+                          {gp.player?.name ?? 'Unknown'}
+                          {gp.player_id === currentPlayer?.id && (
                             <span className="text-xs text-muted-foreground font-normal">({t('common.you')})</span>
                           )}
                         </span>
@@ -380,7 +365,7 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
                       description={
                         votes.length > 0 ? (
                           <span className="flex items-center gap-1 text-xs">
-                            {t('voting.vote_count', getImpostorVoteCount(player.id), getImpostorVoteCount(player.id) !== 1 ? 's' : '')}
+                            {t('voting.vote_count', getPlayerVoteCount(gp.player_id), getPlayerVoteCount(gp.player_id) !== 1 ? 's' : '')}
                           </span>
                         ) : undefined
                       }
@@ -399,13 +384,13 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
                 </div>
               </div>
 
-              {/* Section: Alternative actions */}
+              {/* Action votes */}
               <SelectionGroup>
                 <SelectionItem
                   checked={myChoice?.type === 'next_round'}
                   onChange={() => !hasVoted && setMyChoice({ type: 'next_round' })}
                   disabled={hasVoted}
-                  className="has-[:checked]:bg-green-500/20 has-[:checked]:border-green-500/50 dark:has-[:checked]:bg-green-900/40 [&_input]:checked:bg-green-600 [&_input]:checked:border-green-600 [&_input]:checked:shadow-green-900 [&_input]:focus:ring-green-500"
+                  className="has-[:checked]:bg-green-500/20 has-[:checked]:border-green-500/50 dark:has-[:checked]:bg-green-900/40"
                   title={
                     <span className="flex items-center gap-2">
                       <Play className="size-4" />
@@ -424,7 +409,7 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
                   checked={myChoice?.type === 'end_game'}
                   onChange={() => !hasVoted && setMyChoice({ type: 'end_game' })}
                   disabled={hasVoted}
-                  className="has-[:checked]:bg-red-500/20 has-[:checked]:border-red-500/50 dark:has-[:checked]:bg-red-900/40 [&_input]:checked:bg-red-600 [&_input]:checked:border-red-600 [&_input]:checked:shadow-red-900 [&_input]:focus:ring-red-500"
+                  className="has-[:checked]:bg-red-500/20 has-[:checked]:border-red-500/50 dark:has-[:checked]:bg-red-900/40"
                   title={
                     <span className="flex items-center gap-2">
                       <Flag className="size-4" />
@@ -444,11 +429,7 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
 
             {/* Confirm button */}
             {!hasVoted && (
-              <Button
-                className="w-full"
-                onClick={submitVote}
-                disabled={!canSubmit || isSubmitting}
-              >
+              <Button className="w-full" onClick={doSubmitVote} disabled={!canSubmit || isSubmitting}>
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 size-4 animate-spin" />
@@ -477,7 +458,7 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
               {pendingVoters.length > 0 ? (
                 <>
                   <p className="mb-1">
-                    {t('voting.waiting_players', pendingVoters.map((p) => p.name).join(', '))}
+                    {t('voting.waiting_players', pendingVoters.map((gp) => gp.player?.name).join(', '))}
                   </p>
                   <p>
                     {t('voting.progress', votes.length, totalActivePlayers)}

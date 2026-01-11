@@ -4,81 +4,151 @@ import type { Vote } from "./types";
 // ============ CRUD Operations ============
 
 /**
- * Get all votes for a room and round
+ * Get all votes for a round
  */
-export async function getVotesByRoomAndRound(roomId: string, round: number) {
+export async function getVotesByRound(roundId: string) {
   const { data, error } = await supabase
     .from("votes")
     .select("*")
-    .eq("room_id", roomId)
-    .eq("round", round);
+    .eq("round_id", roundId);
   return { data: (data as Vote[]) || [], error };
 }
 
 /**
- * Upsert a vote
+ * Submit a player vote
  */
-export async function upsertVote(
-  roomId: string,
-  round: number,
+export async function submitPlayerVote(
+  roundId: string,
   voterId: string,
-  impostorVote: string | null,
-  actionVote: "next_round" | "end_game" | null
+  targetPlayerId: string
 ) {
   const { error } = await supabase.from("votes").upsert(
     {
-      room_id: roomId,
-      round,
+      round_id: roundId,
       voter_id: voterId,
-      impostor_vote: impostorVote,
-      action_vote: actionVote,
+      target_player_id: targetPlayerId,
+      action_vote: null,
+      is_action_vote: false,
     },
     {
-      onConflict: "room_id,round,voter_id",
+      onConflict: "round_id,voter_id",
     }
   );
   return { error };
 }
 
 /**
- * Delete all votes in a room
+ * Submit an action vote (next_round or end_game)
  */
-export async function deleteVotesByRoomId(roomId: string) {
-  const { error } = await supabase.from("votes").delete().eq("room_id", roomId);
+export async function submitActionVote(
+  roundId: string,
+  voterId: string,
+  action: "next_round" | "end_game"
+) {
+  const { error } = await supabase.from("votes").upsert(
+    {
+      round_id: roundId,
+      voter_id: voterId,
+      target_player_id: null,
+      action_vote: action,
+      is_action_vote: true,
+    },
+    {
+      onConflict: "round_id,voter_id",
+    }
+  );
   return { error };
 }
 
 /**
- * Delete votes by a specific voter in a room
+ * Delete a vote
  */
-export async function deleteVotesByVoter(roomId: string, voterId: string) {
-  const { count, error } = await supabase
+export async function deleteVote(roundId: string, voterId: string) {
+  const { error } = await supabase
     .from("votes")
     .delete()
-    .eq("room_id", roomId)
+    .eq("round_id", roundId)
     .eq("voter_id", voterId);
-  return { count, error };
+  return { error };
+}
+
+/**
+ * Calculate vote results for a round
+ */
+export async function calculateVoteResults(roundId: string) {
+  const { data: votes, error } = await getVotesByRound(roundId);
+
+  if (error || !votes.length) {
+    return { result: null, error };
+  }
+
+  // Count player votes
+  const playerVotes: Record<string, number> = {};
+  // Count action votes
+  const actionVotes: Record<string, number> = { next_round: 0, end_game: 0 };
+
+  for (const vote of votes) {
+    if (vote.is_action_vote && vote.action_vote) {
+      actionVotes[vote.action_vote]++;
+    } else if (vote.target_player_id) {
+      playerVotes[vote.target_player_id] =
+        (playerVotes[vote.target_player_id] || 0) + 1;
+    }
+  }
+
+  // Find majority
+  const maxPlayerVotes = Math.max(0, ...Object.values(playerVotes));
+  const maxActionVotes = Math.max(actionVotes.next_round, actionVotes.end_game);
+
+  // If action votes win
+  if (maxActionVotes > maxPlayerVotes) {
+    const majorityAction =
+      actionVotes.next_round > actionVotes.end_game ? "next_round" : "end_game";
+    return {
+      result: {
+        type: "action" as const,
+        action: majorityAction as "next_round" | "end_game",
+      },
+      error: null,
+    };
+  }
+
+  // If player votes win
+  if (maxPlayerVotes > maxActionVotes) {
+    const eliminatedPlayerId = Object.entries(playerVotes).find(
+      ([, count]) => count === maxPlayerVotes
+    )?.[0];
+
+    if (eliminatedPlayerId) {
+      return {
+        result: {
+          type: "player" as const,
+          eliminatedPlayerId,
+        },
+        error: null,
+      };
+    }
+  }
+
+  // Tie - no elimination, continue
+  return { result: null, error: null };
 }
 
 // ============ Realtime Subscriptions ============
 
 /**
- * Subscribe to vote changes for a room and round
+ * Subscribe to vote changes for a round
  */
-export function subscribeToVotes(
-  roomId: string,
-  round: number,
-  callback: () => void
-) {
+export function subscribeToVotes(roundId: string, callback: () => void) {
   const channel = supabase
-    .channel(`votes-${roomId}-${round}`)
+    .channel(`votes-${roundId}`)
     .on(
       "postgres_changes",
       {
         event: "*",
         schema: "public",
         table: "votes",
-        filter: `room_id=eq.${roomId}`,
+        filter: `round_id=eq.${roundId}`,
       },
       () => {
         callback();

@@ -4,7 +4,14 @@ import { useEffect, useState } from 'react'
 import copy from 'copy-to-clipboard'
 import { useRouter } from 'next/navigation'
 import useSupabaseBrowser from '@/lib/supabase/browser'
-import { type Player, type Room } from '@/lib/supabase'
+import {
+  type Player,
+  type Room,
+  createGame,
+  createGamePlayers,
+  setImpostor,
+  createRound
+} from '@/lib/supabase'
 import { getClientId } from '@/lib/game-utils'
 import { getRandomWord } from '@/lib/words'
 import { Button } from '@/components/ui/button'
@@ -31,27 +38,6 @@ export function Lobby({ room, players, onGameStart }: LobbyProps) {
   const canStart = players.length >= minPlayers
   const { t } = useLanguage()
 
-  // Clean old votes when entering lobby
-  useEffect(() => {
-    const cleanVotes = async () => {
-      const myPlayer = players.find((p) => p.client_id === clientId)
-      if (!myPlayer) return
-
-      try {
-        console.log('[Lobby] Cleaning votes for player:', myPlayer.name)
-        if (isHost) {
-          await supabase.from('votes').delete().eq('room_id', room.id)
-        }
-        console.log('[Lobby] Cleanup success')
-      } catch (err) {
-        console.error('[Lobby] Error cleaning votes:', err)
-      }
-    }
-
-    cleanVotes()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [room.id, isHost])
-
   const copyLink = () => {
     const link = `${window.location.origin}/room/${room.code}`
     copy(link)
@@ -64,35 +50,31 @@ export function Lobby({ room, players, onGameStart }: LobbyProps) {
 
     setIsStarting(true)
     try {
-      // Force cleanup: Host cleans all votes before starting
-      console.log('[Lobby] Host starting game, force cleaning all votes...')
-      await supabase.from('votes').delete().eq('room_id', room.id)
+      // 1. Create a new game
+      const word = getRandomWord()
+      const { data: newGame, error: gameError } = await createGame(room.id, word)
 
-      // Pick impostor
+      if (gameError || !newGame) {
+        console.error('Error creating game:', gameError)
+        return
+      }
+
+      // 2. Create game_players for all players
+      const playerIds = players.map(p => p.id)
+      const { error: gpError } = await createGamePlayers(newGame.id, playerIds)
+
+      if (gpError) {
+        console.error('Error creating game players:', gpError)
+        return
+      }
+
+      // 3. Pick random impostor
       const impostorIndex = Math.floor(Math.random() * players.length)
       const impostorId = players[impostorIndex].id
+      await setImpostor(newGame.id, impostorId)
 
-      // Reset all players
-      await supabase
-        .from('players')
-        .update({ is_impostor: false, is_eliminated: false })
-        .eq('room_id', room.id)
-
-      // Mark the impostor
-      await supabase
-        .from('players')
-        .update({ is_impostor: true })
-        .eq('id', impostorId)
-
-      // Update room
-      await supabase
-        .from('rooms')
-        .update({
-          status: 'playing',
-          round: room.round + 1,
-          word: getRandomWord(),
-        })
-        .eq('id', room.id)
+      // 4. Create first round
+      await createRound(newGame.id, 1)
 
       onGameStart()
     } catch (error) {
@@ -110,7 +92,6 @@ export function Lobby({ room, players, onGameStart }: LobbyProps) {
     try {
       // Se for o host, transferir para o próximo jogador mais antigo antes de sair
       if (isHost && players.length > 1) {
-        // players está ordenado por joined_at, então pegamos o próximo jogador que não é o atual
         const nextHost = players.find((p) => p.client_id !== clientId)
         if (nextHost) {
           await supabase
@@ -130,9 +111,7 @@ export function Lobby({ room, players, onGameStart }: LobbyProps) {
         .eq('room_id', room.id)
 
       if (count === 0) {
-        // Delete votes first (FK constraint)
-        await supabase.from('votes').delete().eq('room_id', room.id)
-        // Delete the empty room
+        // Cascade will handle games, rounds, votes
         await supabase.from('rooms').delete().eq('id', room.id)
       }
 
