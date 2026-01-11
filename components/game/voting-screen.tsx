@@ -78,6 +78,19 @@ export function VotingScreen({
     fetchVotes()
   }, [fetchVotes])
 
+  // Reset state when round changes
+  useEffect(() => {
+    if (currentRound?.id) {
+      setVotes([])
+      setMyChoice(null)
+      setHasVoted(false)
+      setRevealResult(false)
+      setMostVotedPlayer(null)
+      setDecidedAction(null)
+      fetchVotes()
+    }
+  }, [currentRound?.id, fetchVotes])
+
   // Realtime subscription for votes
   useEffect(() => {
     if (!currentRound?.id) return

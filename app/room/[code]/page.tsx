@@ -254,15 +254,9 @@ export default function RoomPage() {
       }).catch((err) => console.error('Failed to leave room:', err))
     }
 
-    // Handle browser close / refresh
-    window.addEventListener('beforeunload', handleLeave)
-
-    // Handle mobile tab close / app switch (iOS Safari specificity)
     window.addEventListener('pagehide', handleLeave)
 
-    // Handle component unmount (SPA navigation)
     return () => {
-      window.removeEventListener('beforeunload', handleLeave)
       window.removeEventListener('pagehide', handleLeave)
       handleLeave()
     }
@@ -291,10 +285,14 @@ export default function RoomPage() {
 
   // Reset view state when round changes
   useEffect(() => {
-    if (currentRound?.id) {
-      setViewState('role')
+    if (currentRound?.id && game) {
+      if (game.current_round === 1) {
+        setViewState('role')
+      } else {
+        setViewState('voting')
+      }
     }
-  }, [currentRound?.id])
+  }, [currentRound?.id, game?.current_round])
 
   const isLoading = isLoadingRoom || (!!room && isLoadingPlayers)
 
