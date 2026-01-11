@@ -48,11 +48,14 @@ export async function getRoundById(roundId: string) {
  */
 export async function updateRoundEliminated(
   roundId: string,
-  eliminatedPlayerId: string
+  eliminatedPlayerId: string,
 ) {
   const { error } = await supabase
     .from("rounds")
-    .update({ eliminated_player_id: eliminatedPlayerId })
+    .update({
+      eliminated_player_id: eliminatedPlayerId,
+      ended_at: new Date().toISOString(),
+    })
     .eq("id", roundId);
   return { error };
 }
@@ -62,11 +65,14 @@ export async function updateRoundEliminated(
  */
 export async function updateRoundMajorityAction(
   roundId: string,
-  majorityAction: "next_round" | "end_game"
+  majorityAction: "next_round" | "end_game",
 ) {
   const { error } = await supabase
     .from("rounds")
-    .update({ majority_action: majorityAction })
+    .update({
+      majority_action: majorityAction,
+      ended_at: new Date().toISOString(),
+    })
     .eq("id", roundId);
   return { error };
 }
@@ -90,7 +96,7 @@ export async function getRoundsByGame(gameId: string) {
  */
 export function subscribeToRound(
   roundId: string,
-  callback: (round: Round) => void
+  callback: (round: Round) => void,
 ) {
   const channel = supabase
     .channel(`round-${roundId}`)
@@ -104,7 +110,7 @@ export function subscribeToRound(
       },
       (payload) => {
         callback(payload.new as Round);
-      }
+      },
     )
     .subscribe();
 

@@ -49,6 +49,8 @@ export {
   getGamePlayers,
   getGamePlayer,
   isPlayerImpostor,
+  setPlayerEliminated,
+  setPlayerAcknowledged,
   subscribeToGamePlayers,
   type GamePlayerWithPlayer,
 } from "./game-players";

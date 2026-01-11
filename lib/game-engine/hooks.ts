@@ -11,6 +11,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import useSupabaseBrowser from "@/lib/supabase/browser";
 import { getRoomByCode } from "@/queries";
 import { getClientId } from "@/lib/game-utils";
+import { setPlayerAcknowledged } from "@/lib/supabase";
 import type { Room, Player, Game, Round } from "@/lib/supabase/types";
 import type { GamePlayerWithPlayer } from "@/lib/supabase/game-players";
 import type { UseGameLoopReturn, ViewPhase, TransitionResult } from "./types";
@@ -99,6 +100,29 @@ export function useGameLoop(roomCode: string): UseGameLoopReturn {
   const roomRef = useRef<Room | null>(null);
   const playerRef = useRef<Player | null>(null);
 
+  // ============ Computed Values ============
+
+  const currentPlayer = useMemo(
+    () => players.find((p) => p.client_id === clientId) ?? null,
+    [players, clientId],
+  );
+
+  const currentGamePlayer = useMemo(
+    () => gamePlayers.find((gp) => gp.player_id === currentPlayer?.id) ?? null,
+    [gamePlayers, currentPlayer?.id],
+  );
+
+  const isHost = room?.host_id === clientId;
+  const isImpostor = currentGamePlayer?.is_impostor ?? false;
+
+  const viewPhase = calculateViewPhase(room, game, currentPlayer, hasAckedRole);
+
+  // Update refs
+  useEffect(() => {
+    roomRef.current = room;
+    playerRef.current = currentPlayer;
+  }, [room, currentPlayer]);
+
   // ============ Data Fetching ============
 
   const fetchRoom = useCallback(async () => {
@@ -155,15 +179,22 @@ export function useGameLoop(roomCode: string): UseGameLoopReturn {
     if (!game?.id || !currentRound?.id) return;
     const key = getAckKey(game.id, currentRound.id);
     const savedAck = localStorage.getItem(key) === "true";
-    setHasAckedRole(savedAck);
-  }, [game?.id, currentRound?.id]);
+    const dbAck = currentGamePlayer?.role_acknowledged ?? false;
+
+    if (savedAck || dbAck) {
+      setHasAckedRole(true);
+    }
+  }, [game?.id, currentRound?.id, currentGamePlayer?.role_acknowledged]);
 
   const acknowledgeRole = useCallback(() => {
-    if (!game?.id || !currentRound?.id) return;
+    if (!game?.id || !currentRound?.id || !currentPlayer?.id) return;
     const key = getAckKey(game.id, currentRound.id);
     localStorage.setItem(key, "true");
     setHasAckedRole(true);
-  }, [game?.id, currentRound?.id]);
+
+    // Sync with DB
+    setPlayerAcknowledged(game.id, currentPlayer.id).catch(console.error);
+  }, [game?.id, currentRound?.id, currentPlayer?.id]);
 
   // ============ Realtime Subscriptions ============
 
@@ -232,29 +263,6 @@ export function useGameLoop(roomCode: string): UseGameLoopReturn {
     };
   }, [supabase, game?.id, fetchGameData]);
 
-  // ============ Computed Values ============
-
-  const currentPlayer = useMemo(
-    () => players.find((p) => p.client_id === clientId) ?? null,
-    [players, clientId],
-  );
-
-  const currentGamePlayer = useMemo(
-    () => gamePlayers.find((gp) => gp.player_id === currentPlayer?.id) ?? null,
-    [gamePlayers, currentPlayer?.id],
-  );
-
-  const isHost = room?.host_id === clientId;
-  const isImpostor = currentGamePlayer?.is_impostor ?? false;
-
-  const viewPhase = calculateViewPhase(room, game, currentPlayer, hasAckedRole);
-
-  // Update refs
-  useEffect(() => {
-    roomRef.current = room;
-    playerRef.current = currentPlayer;
-  }, [room, currentPlayer]);
-
   // ============ Actions ============
 
   const withTransition = useCallback(
@@ -309,10 +317,13 @@ export function useGameLoop(roomCode: string): UseGameLoopReturn {
     return withTransition(() => transitionStartNextRound(game));
   }, [game, withTransition]);
 
-  const endGameAction = useCallback(async (): Promise<TransitionResult> => {
-    if (!game) return { success: false, error: "No game available" };
-    return withTransition(() => transitionEndGame(game));
-  }, [game, withTransition]);
+  const endGameAction = useCallback(
+    async (winner: "impostor" | "players"): Promise<TransitionResult> => {
+      if (!game) return { success: false, error: "No game available" };
+      return withTransition(() => transitionEndGame(game, winner));
+    },
+    [game, withTransition],
+  );
 
   const playAgain = useCallback(
     async (newWord: string): Promise<TransitionResult> => {

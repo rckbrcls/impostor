@@ -25,6 +25,11 @@ Controls the high-level state of the lobby/session.
 
 Controls the specific phase of the current match. Only active when Room is `playing`.
 
+**New Fields:**
+
+- `winner`: 'impostor' | 'players' (set at game_over)
+- `ended_at`: Timestamp (set at game_over)
+
 | Status            | Description                                                                                                                                                                                                                                    | UI Component                           |
 | :---------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------- |
 | `reveal`          | **Start of Game**. Shows Role (Impostor/Citizen) and Secret Word. **Note:** Players can individually advance to the `voting` screen by clicking "Ready", even if the global status is still `reveal`. This status acts as a soft sync barrier. | `<GameScreen />`                       |
@@ -120,7 +125,8 @@ stateDiagram-v2
 - **Trigger**: Individual Player clicks "Ready to Vote" in `<GameScreen />`.
 - **Action**:
   - **Local**: The app records that the player has acknowledged the round (saved in `localStorage`). The UI transitions to `<VotingScreen />` for that player _immediately_.
-  - **Global**: The game status remains `'reveal'` until/unless updated (though the app now relies on local readiness to show the voting screen).
+  - **Server**: Updates `game_players.role_acknowledged` to `true` (syncs readiness across devices).
+  - **Global**: The game status remains `'reveal'` until/unless updated (though the app now relies on local/server readiness to show the voting screen).
 - **Result**: Players can start voting independently. The global state naturally progresses when everyone casts their vote (triggering `vote_result`) OR if the Host manually forces a start (legacy behavior, button removed for now).
 
 ### 3. Voting Results

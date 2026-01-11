@@ -103,7 +103,7 @@ export interface GameLoopActions {
     eliminatedPlayerId?: string,
   ) => Promise<TransitionResult>;
   startNextRound: () => Promise<TransitionResult>;
-  endGame: () => Promise<TransitionResult>;
+  endGame: (winner: "impostor" | "players") => Promise<TransitionResult>;
   playAgain: (newWord: string) => Promise<TransitionResult>;
   endSession: () => Promise<TransitionResult>;
 

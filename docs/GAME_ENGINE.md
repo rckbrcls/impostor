@@ -287,7 +287,7 @@ Quando qualquer dado muda, o estado é automaticamente atualizado.
 
 ## Reconhecimento de Role (Local)
 
-O reconhecimento de role é armazenado localmente via `localStorage`:
+O reconhecimento de role é armazenado localmente via `localStorage`, mas o banco de dados já suporta sincronização via campo `role_acknowledged` em `game_players`.
 
 ```typescript
 // Chave: impostor_ack_{gameId}_{roundId}
@@ -295,6 +295,7 @@ O reconhecimento de role é armazenado localmente via `localStorage`:
 
 // Uso via hook
 acknowledgeRole(); // Marca como reconhecido e muda viewPhase para "voting"
+// Futuro: Sincronizar com DB para que o host saiba quem já viu
 ```
 
 Isso permite que cada jogador avance individualmente para a tela de votação sem esperar pelos outros.

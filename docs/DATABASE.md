@@ -75,7 +75,9 @@ Representa uma partida individual dentro de uma sala.
 | `word`          | `string`            | ✅       | -                   | Palavra secreta do jogo           |
 | `status`        | `string`            | ✅       | -                   | Status atual do jogo              |
 | `current_round` | `integer`           | ✅       | `1`                 | Número da rodada atual            |
+| `winner`        | `string`            | ✅       | -                   | Vencedor: 'impostor' ou 'players' |
 | `created_at`    | `timestamp with tz` | ✅       | `now()`             | Data/hora de criação do jogo      |
+| `ended_at`      | `timestamp with tz` | ✅       | -                   | Data/hora de término do jogo      |
 
 #### Status do Jogo (`games.status`)
 
@@ -97,12 +99,14 @@ Representa uma partida individual dentro de uma sala.
 
 Tabela de junção que associa jogadores a um jogo específico e define seus papéis.
 
-| Coluna        | Tipo      | Nullable | Default             | Descrição                               |
-| :------------ | :-------- | :------- | :------------------ | :-------------------------------------- |
-| `id`          | `uuid`    | ❌       | `gen_random_uuid()` | Identificador único                     |
-| `game_id`     | `uuid`    | ❌       | -                   | FK para o jogo                          |
-| `player_id`   | `uuid`    | ❌       | -                   | FK para o jogador                       |
-| `is_impostor` | `boolean` | ✅       | `false`             | Se este jogador é o impostor neste jogo |
+| Coluna              | Tipo      | Nullable | Default             | Descrição                               |
+| :------------------ | :-------- | :------- | :------------------ | :-------------------------------------- |
+| `id`                | `uuid`    | ❌       | `gen_random_uuid()` | Identificador único                     |
+| `game_id`           | `uuid`    | ❌       | -                   | FK para o jogo                          |
+| `player_id`         | `uuid`    | ❌       | -                   | FK para o jogador                       |
+| `is_impostor`       | `boolean` | ✅       | `false`             | Se este jogador é o impostor neste jogo |
+| `is_eliminated`     | `boolean` | ✅       | `false`             | Se o jogador foi eliminado              |
+| `role_acknowledged` | `boolean` | ✅       | `false`             | Se o jogador viu a tela de role         |
 
 #### Relacionamentos
 
@@ -123,6 +127,7 @@ Representa uma rodada de votação dentro de um jogo.
 | `eliminated_player_id` | `uuid`              | ✅       | -                   | FK para o jogador eliminado nesta rodada (se houver) |
 | `majority_action`      | `string`            | ✅       | -                   | Ação da maioria (ex: "eliminate", "skip")            |
 | `created_at`           | `timestamp with tz` | ✅       | `now()`             | Data/hora de criação da rodada                       |
+| `ended_at`             | `timestamp with tz` | ✅       | -                   | Data/hora de conclusão da rodada                     |
 
 #### Valores de `majority_action`
 
@@ -410,6 +415,8 @@ CREATE INDEX idx_games_room_id ON games(room_id);
 
 -- Buscar game_players de um jogo
 CREATE INDEX idx_game_players_game_id ON game_players(game_id);
+-- Buscar game_players de um jogador
+CREATE INDEX idx_game_players_player_id ON game_players(player_id);
 
 -- Buscar rodadas de um jogo
 CREATE INDEX idx_rounds_game_id ON rounds(game_id);
