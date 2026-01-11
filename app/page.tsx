@@ -16,7 +16,7 @@ export default function Home() {
         <div className="text-center space-y-2">
           <div className="flex flex-col items-center justify-center mb-6">
             <Image
-              src="/assets/Group.png"
+              src="/assets/impostor.png"
               alt={t('home.title')}
               width={200}
               height={200}
