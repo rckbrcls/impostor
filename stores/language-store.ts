@@ -165,7 +165,7 @@ export const translations = {
       "Duplizen é um jogo de dedução social multiplayer onde você precisa descobrir quem é o impostor entre seus amigos!",
     "about.what_is_title": "O que é Duplizen?",
     "about.what_is_desc":
-      "Duplizen é um jogo de festa para grupos de amigos. Uma pessoa é escolhida aleatoriamente como o impostor e não sabe qual é a palavra secreta. Os outros jogadores precisam descobrir quem é o impostor fazendo perguntas e observando as respostas, enquanto o impostor tenta se passar despercebido.",
+      "Duplizen é um jogo para grupos de amigos. Uma pessoa é escolhida aleatoriamente como o impostor e não sabe qual é a palavra secreta. Os outros jogadores precisam descobrir quem é o impostor fazendo perguntas e observando as respostas, enquanto o impostor tenta se passar despercebido.",
     "about.how_to_play": "Como Jogar",
     "about.step1_title": "Crie uma Sala",
     "about.step1_desc":
@@ -349,7 +349,7 @@ export const translations = {
       "Duplizen is a multiplayer social deduction game where you need to find the impostor among your friends!",
     "about.what_is_title": "What is Duplizen?",
     "about.what_is_desc":
-      "Duplizen is a party game for groups of friends. One person is randomly chosen as the impostor and doesn't know the secret word. Other players must figure out who the impostor is by asking questions and observing answers, while the impostor tries to blend in.",
+      "Duplizen is a game for groups of friends. One person is randomly chosen as the impostor and doesn't know the secret word. Other players must figure out who the impostor is by asking questions and observing answers, while the impostor tries to blend in.",
     "about.how_to_play": "How to Play",
     "about.step1_title": "Create a Room",
     "about.step1_desc":

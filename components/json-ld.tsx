@@ -18,7 +18,7 @@ export function JsonLd() {
       name: "Polterware",
       url: "https://www.polterware.com",
     },
-    genre: ["Party Game", "Social Deduction", "Multiplayer"],
+    genre: ["Social Deduction", "Multiplayer", "Party Game"],
     inLanguage: ["en", "pt-BR"],
   };
 
