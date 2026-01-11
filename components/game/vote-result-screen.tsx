@@ -9,10 +9,10 @@ import {
   type Round,
   type Vote,
   type GamePlayerWithPlayer,
-  getVotesByRound,
   updateRoundMajorityAction,
   getRoundsByGame
 } from '@/lib/supabase'
+import { getVotesByRound } from '@/queries'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2, Play, Flag } from 'lucide-react'
@@ -57,11 +57,11 @@ export function VoteResultScreen({
   // Fetch votes
   const fetchVotes = useCallback(async () => {
     if (!currentRound?.id) return
-    const { data } = await getVotesByRound(currentRound.id)
+    const { data } = await getVotesByRound(supabase, currentRound.id)
     if (currentRoundIdRef.current === currentRound.id) {
       setVotes(data || [])
     }
-  }, [currentRound?.id])
+  }, [currentRound?.id, supabase])
 
   // Initial fetch
   useEffect(() => {

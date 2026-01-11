@@ -9,11 +9,11 @@ import {
   type Round,
   type Vote,
   type GamePlayerWithPlayer,
-  getVotesByRound,
   submitPlayerVote,
   submitActionVote,
   getRoundsByGame
 } from '@/lib/supabase'
+import { getVotesByRound } from '@/queries'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { SelectionGroup, SelectionItem } from '@/components/ui/selection-card'
@@ -90,14 +90,14 @@ export function VotingScreen({
     const roundIdToFetch = currentRound.id
 
     setIsLoadingVotes(true)
-    const { data } = await getVotesByRound(roundIdToFetch)
+    const { data } = await getVotesByRound(supabase, roundIdToFetch)
 
     // Only update state if we are still on the same round
     if (currentRoundIdRef.current === roundIdToFetch) {
       setVotes(data || [])
       setIsLoadingVotes(false)
     }
-  }, [currentRound?.id])
+  }, [currentRound?.id, supabase])
 
   // Initial fetch and reset
   useEffect(() => {
@@ -158,7 +158,7 @@ export function VotingScreen({
   useEffect(() => {
     if (
       isHost &&
-      votes.length === totalActivePlayers &&
+      votes.length >= totalActivePlayers && // Changed to >= to be safe
       votes.length > 0 &&
       (game.status === 'voting' || game.status === 'reveal') &&
       !isProcessing &&
@@ -231,10 +231,10 @@ export function VotingScreen({
 
         <>
           {amIEliminated ? (
-            <div className="p-8 text-center bg-red-500/10 border-2 border-red-500/50 rounded-lg">
-              <UserX className="mx-auto h-12 w-12 text-red-500/50 mb-4" />
-              <h3 className="text-lg font-bold text-red-500 mb-2">{t('game.eliminated')}</h3>
-              <p className="text-sm text-muted-foreground">
+            <div className="p-8 text-center bg-red-500/10 border-2 border-red-500 dark:border-red-500 shadow-[4px_4px_0_0] shadow-black dark:shadow-white">
+              <UserX className="mx-auto h-12 w-12 text-red-500 mb-4" />
+              <h3 className="text-lg font-bold text-red-600 dark:text-red-400 mb-2">{t('game.eliminated')}</h3>
+              <p className="text-sm font-medium">
                 You can watch the voting process but cannot participate.
               </p>
             </div>

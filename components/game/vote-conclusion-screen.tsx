@@ -1,13 +1,12 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import useSupabaseBrowser from '@/lib/supabase/browser'
 import {
   type Game,
   type Player,
   type Room,
   type Round,
-  type Vote,
   type GamePlayerWithPlayer,
   getVotesByRound,
   getRoundsByGame,
@@ -43,51 +42,31 @@ export function VoteConclusionScreen({
   const supabase = useSupabaseBrowser()
   const { t } = useLanguage()
 
-  const [votes, setVotes] = useState<Vote[]>([])
-  const [isLoading, setIsLoading] = useState(true)
   const [isProcessing, setIsProcessing] = useState(false)
-  const [myVoteResult, setMyVoteResult] = useState<{
-    votedPlayer: Player | null;
-    wasImpostor: boolean;
-    isCorrect: boolean;
+  const [outcome, setOutcome] = useState<{
+    type: 'eliminated' | 'skipped';
+    player?: Player;
+    isImpostor?: boolean;
   } | null>(null)
 
-  // Fetch votes to determine what the user voted for
-  const fetchVotes = useCallback(async () => {
-    if (!currentRound?.id) return
-    setIsLoading(true)
-    const { data } = await getVotesByRound(currentRound.id)
-    setVotes(data || [])
-    setIsLoading(false)
-  }, [currentRound?.id])
-
+  // Determine the vote outcome based on currentRound
   useEffect(() => {
-    fetchVotes()
-  }, [fetchVotes])
+    if (!currentRound) return
 
-  // Process my vote
-  useEffect(() => {
-    if (!isLoading && votes.length > 0 && currentPlayer) {
-      const myVote = votes.find(v => v.voter_id === currentPlayer.id)
-
-      if (myVote && myVote.target_player_id) {
-        // Player voted for someone
-        const targetId = myVote.target_player_id
-        const targetGp = gamePlayers.find(gp => gp.player_id === targetId)
-
-        if (targetGp) {
-          setMyVoteResult({
-            votedPlayer: targetGp.player || null,
-            wasImpostor: targetGp.is_impostor,
-            isCorrect: targetGp.is_impostor // Correct if voted for impostor
-          })
-        }
-      } else {
-        // Did not vote for a player (skipped or action vote)
-        setMyVoteResult(null)
+    if (currentRound.eliminated_player_id) {
+      const eliminatedGp = gamePlayers.find(gp => gp.player_id === currentRound.eliminated_player_id)
+      if (eliminatedGp) {
+        setOutcome({
+          type: 'eliminated',
+          player: eliminatedGp.player || undefined,
+          isImpostor: eliminatedGp.is_impostor
+        })
       }
+    } else {
+      // No one eliminated implies skip or tie (which results in skip usually)
+      setOutcome({ type: 'skipped' })
     }
-  }, [votes, currentPlayer, gamePlayers, isLoading])
+  }, [currentRound, gamePlayers])
 
   const handleContinue = async () => {
     if (!isHost) return
@@ -178,9 +157,7 @@ export function VoteConclusionScreen({
     }
   }
 
-
-
-  if (isLoading) {
+  if (!outcome) {
     return (
       <div className="flex items-center justify-center p-8">
         <Loader2 className="size-8 animate-spin" />
@@ -196,21 +173,21 @@ export function VoteConclusionScreen({
       </CardHeader>
       <CardContent className="space-y-6 text-center">
 
-        {myVoteResult ? (
-          <div className={`p-6 border-2 shadow-[4px_4px_0_0] rounded-none ${myVoteResult.isCorrect
+        {outcome.type === 'eliminated' ? (
+          <div className={`p-6 border-2 shadow-[4px_4px_0_0] rounded-none ${outcome.isImpostor
             ? 'bg-green-500/10 border-green-600 shadow-green-600 dark:border-green-400 dark:shadow-green-400'
             : 'bg-red-500/10 border-red-600 shadow-red-600 dark:border-red-400 dark:shadow-red-400'
             }`}>
             <p className="text-sm text-muted-foreground mb-4">
-              {t('vote_conclusion.you_voted_for')}
+              {t('vote_conclusion.result_header')}
             </p>
 
             <div className="text-2xl font-bold mb-4 flex items-center justify-center gap-2">
-              {myVoteResult.votedPlayer?.name}
+              {outcome.player?.name}
             </div>
 
             <div className="flex items-center justify-center gap-2 text-lg font-bold">
-              {myVoteResult.isCorrect ? (
+              {outcome.isImpostor ? (
                 <>
                   <Check className="size-6 text-green-600 dark:text-green-400" />
                   <span className="text-green-600 dark:text-green-400">{t('vote_conclusion.impostor_found')}</span>
@@ -226,7 +203,7 @@ export function VoteConclusionScreen({
         ) : (
           <div className="p-6 border-2 border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-900 rounded-none shadow-[4px_4px_0_0] shadow-black dark:shadow-white">
             <p className="text-muted-foreground">
-              {t('vote_conclusion.skipped_or_action')}
+              {t('vote_conclusion.result_skipped')}
             </p>
           </div>
         )}

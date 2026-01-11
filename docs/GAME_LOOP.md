@@ -58,8 +58,11 @@ Abaixo detalhamos cada etapa do fluxo do usuário, conectando a **Fase Visual (`
   - Botão "Pronto" / "Entendido".
 - **Ação do Jogador**: Clica em "Pronto".
   - Chama: `acknowledgeRole()` (Local + DB).
-  - **Lógica**: Marca localmente que o jogador viu. O estado `viewPhase` muda para `voting` _apenas para esse jogador_.
-- **Transição**: Individualmente para `voting`.
+  - **Lógica**: O jogador entra em estado de espera ("Aguardando outros jogadores").
+- **Gatilho de Transição**: Quando **todos** os jogadores confirmarem (host detecta).
+  - Chama: `advanceToVoting()`.
+  - **Lógica**: Muda status do jogo para `voting`.
+- **Transição**: Todos os jogadores vão para `voting` simultaneamente.
 
 ### 4. Votação (Voting)
 
@@ -92,19 +95,20 @@ Abaixo detalhamos cada etapa do fluxo do usuário, conectando a **Fase Visual (`
     - Muda status do jogo para `vote_conclusion`.
 - **Transição**: Todos vão para `vote_conclusion`.
 
-### 6. Conclusão Individual (Scoring & Feedback)
+### 6. Conclusão do Voto (Vote Conclusion)
 
 - **Fase**: `vote_conclusion`
 - **Status do Jogo**: `vote_conclusion`
 - **Componente**: `VoteConclusionScreen.tsx`
 - **O que acontece**:
-  - Feedback Individual: "Você acertou o impostor!" ou "Você errou!".
+  - Resultado da Votação: Mostra quem foi eliminado pelo grupo (ou se pularam).
+  - Revela se o eliminado era o impostor ou não.
   - **Cálculo de Pontuação**: O componente calcula e atribui pontos (Impostor sobreviveu? Jogadores pegaram o impostor?).
 - **Cenários**:
   1. **Impostor Pego**: Jogo acaba. Vitória dos Inocentes.
   2. **1v1 (Impostor + 1)**: Jogo acaba. Vitória do Impostor.
   3. **Votação para Encerrar**: Jogo acaba. Vitória do Impostor.
-  4. **Ninguém Pego / Jogo Segue**: Vai para o próximo round.
+  4. **Ninguém Pego / Inocente Eliminado / Jogo Segue**: Vai para o próximo round.
 - **Ação do Host**: Clica em "Continuar" (o texto varia: "Próximo Round" ou "Ver Resultados").
   - **Se o jogo continua**: Chama `startNextRound()`.
     - Cria novo round, muda status para `voting` (game loop reinicia no passo 4, mas sem reveal).
@@ -180,4 +184,4 @@ Uma mudança recente separou a tela de votação em duas etapas distintas para c
    - Mostra: "Fulano foi o mais votado" ou "A sala decidiu pular".
    - Estado: `game.status === 'vote_result'`.
 
-Isso garante que todos vejam o resultado do consenso _antes_ de saberem se acertaram ou erraram individualmente (que acontece na tela seguinte, `VoteConclusion`).
+Isso garante que todos vejam o resultado do consenso _antes_ da confirmação final (que acontece na tela seguinte, `VoteConclusion`, onde é revelado se o eliminado era o impostor).

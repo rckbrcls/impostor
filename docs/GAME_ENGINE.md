@@ -96,7 +96,7 @@ type ViewPhase =
   | "reveal" // Vendo role/palavra
   | "voting" // Votando
   | "vote_result" // Resultado da votação
-  | "vote_conclusion" // Feedback individual
+  | "vote_conclusion" // Resultado da eliminação (se era impostor ou não)
   | "game_over" // Fim do jogo
   | "room_ended"; // Sessão encerrada
 ```

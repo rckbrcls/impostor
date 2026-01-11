@@ -30,13 +30,13 @@ Controls the specific phase of the current match. Only active when Room is `play
 - `winner`: 'impostor' | 'players' (set at game_over)
 - `ended_at`: Timestamp (set at game_over)
 
-| Status            | Description                                                                                                                                                                                                                                    | UI Component                           |
-| :---------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------- |
-| `reveal`          | **Start of Game**. Shows Role (Impostor/Citizen) and Secret Word. **Note:** Players can individually advance to the `voting` screen by clicking "Ready", even if the global status is still `reveal`. This status acts as a soft sync barrier. | `<GameScreen />`                       |
-| `voting`          | **Discussion/Voting Phase**. Players discuss and vote on who is the impostor.                                                                                                                                                                  | `<VotingScreen />`                     |
-| `vote_conclusion` | **Individual Vote Result**. Players see if their individual vote was correct (Impostor or not). **Scoring happens here.**                                                                                                                      | `<VoteConclusionScreen />`             |
-| `vote_result`     | **Round Results**. Shows who received votes and the outcome (Next Round / Elimination).                                                                                                                                                        | `<VotingScreen />` (Result Mode)       |
-| `game_over`       | **End of Game**. A winner is determined (Impostor or Players).                                                                                                                                                                                 | `<ResultsScreen />` (Game Result Mode) |
+| Status            | Description                                                                                                                                 | UI Component                           |
+| :---------------- | :------------------------------------------------------------------------------------------------------------------------------------------ | :------------------------------------- |
+| `reveal`          | **Start of Game**. Shows Role (Impostor/Citizen) and Secret Word. Players must acknowledge to proceed.                                      | `<GameScreen />`                       |
+| `voting`          | **Discussion/Voting Phase**. Players discuss and vote on who is the impostor.                                                               | `<VotingScreen />`                     |
+| `vote_conclusion` | **Vote Outcome**. Players see the result of the majority vote (who was eliminated and if they were the impostor). **Scoring happens here.** | `<VoteConclusionScreen />`             |
+| `vote_result`     | **Round Results**. Shows who received votes and the outcome (Next Round / Elimination).                                                     | `<VotingScreen />` (Result Mode)       |
+| `game_over`       | **End of Game**. A winner is determined (Impostor or Players).                                                                              | `<ResultsScreen />` (Game Result Mode) |
 
 ---
 
@@ -122,12 +122,12 @@ stateDiagram-v2
 
 ### 2. Transition to Voting
 
-- **Trigger**: Individual Player clicks "Ready to Vote" in `<GameScreen />`.
+- **Trigger**: All players click "Ready" in `<GameScreen />` (Host detects).
 - **Action**:
-  - **Local**: The app records that the player has acknowledged the round (saved in `localStorage`). The UI transitions to `<VotingScreen />` for that player _immediately_.
-  - **Server**: Updates `game_players.role_acknowledged` to `true` (syncs readiness across devices).
-  - **Global**: The game status remains `'reveal'` until/unless updated (though the app now relies on local/server readiness to show the voting screen).
-- **Result**: Players can start voting independently. The global state naturally progresses when everyone casts their vote (triggering `vote_result`) OR if the Host manually forces a start (legacy behavior, button removed for now).
+  - **Local**: Player sees "Waiting for players...".
+  - **Server**: Updates `game_players.role_acknowledged` to `true`.
+  - **Global**: When all are ready, Host calls `advanceToVoting()`. Updates `games.status` to `'voting'`.
+- **Result**: All players transition to `<VotingScreen />` simultaneously.
 
 ### 3. Voting Results
 
@@ -257,13 +257,13 @@ game_over → reveal (playAgain)
 
 ### ViewPhase Mapping
 
-| ViewPhase         | Condition                                        |
-| :---------------- | :----------------------------------------------- |
-| `joining`         | No room or no current player                     |
-| `lobby`           | Room waiting, no game                            |
-| `reveal`          | Game status = reveal, player hasn't acknowledged |
-| `voting`          | Game status = reveal (acked) or voting           |
-| `vote_result`     | Game status = vote_result                        |
-| `vote_conclusion` | Game status = vote_conclusion                    |
-| `game_over`       | Game status = game_over                          |
-| `room_ended`      | Room status = game_finished                      |
+| ViewPhase         | Condition                     |
+| :---------------- | :---------------------------- |
+| `joining`         | No room or no current player  |
+| `lobby`           | Room waiting, no game         |
+| `reveal`          | Game status = reveal          |
+| `voting`          | Game status = voting          |
+| `vote_result`     | Game status = vote_result     |
+| `vote_conclusion` | Game status = vote_conclusion |
+| `game_over`       | Game status = game_over       |
+| `room_ended`      | Room status = game_finished   |

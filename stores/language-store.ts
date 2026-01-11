@@ -23,7 +23,7 @@ export const translations = {
     "common.copy_link": "Copiar Link",
     "common.loading": "Carregando...",
     "common.error": "Erro",
-    "common.you": "(você)",
+    "common.you": "você",
 
     // Home
     "home.title": "Impostor",
@@ -79,6 +79,12 @@ export const translations = {
     "game.waiting_host_vote": "Aguarde o host iniciar a votação...",
     "game.eliminated": "Eliminado",
     "game.ready_to_vote": "Pronto para Votar",
+    "game.waiting_title": "Aguardando Jogadores",
+    "game.waiting_desc":
+      "A votação começará assim que todos estiverem prontos.",
+    "game.players_ready": "jogadores prontos",
+    "game.host_waiting_hint":
+      "Como host, o jogo avançará automaticamente quando todos estiverem prontos.",
 
     // Voting
     "voting.title": "Rodada {0} - Votação",
@@ -107,12 +113,11 @@ export const translations = {
 
     // Vote Conclusion
     "vote_conclusion.title": "Conclusão do Voto",
-    "vote_conclusion.subtitle": "Veja se o seu voto foi correto",
-    "vote_conclusion.you_voted_for": "Você votou em:",
+    "vote_conclusion.subtitle": "Resultado da votação",
+    "vote_conclusion.result_header": "Resultado do Voto:",
     "vote_conclusion.impostor_found": "ERA O IMPOSTOR!",
     "vote_conclusion.not_impostor": "NÃO era o impostor.",
-    "vote_conclusion.skipped_or_action":
-      "Você pulou ou votou para pular/encerrar.",
+    "vote_conclusion.result_skipped": "Ninguém foi eliminado.",
     "vote_conclusion.continue_to_results": "Continuar para Resultados",
     "vote_conclusion.waiting_for_host": "Aguardando o host continuar...",
 
@@ -208,7 +213,7 @@ export const translations = {
     "common.copy_link": "Copy Link",
     "common.loading": "Loading...",
     "common.error": "Error",
-    "common.you": "(you)",
+    "common.you": "you",
 
     // Home
     "home.title": "Impostor",
@@ -264,6 +269,11 @@ export const translations = {
     "game.waiting_host_vote": "Wait for host to start voting...",
     "game.eliminated": "Eliminated",
     "game.ready_to_vote": "Ready to Vote",
+    "game.waiting_title": "Waiting for Players",
+    "game.waiting_desc": "The voting will start once everyone is ready.",
+    "game.players_ready": "players ready",
+    "game.host_waiting_hint":
+      "As host, the game will advance automatically when everyone is ready.",
 
     // Voting
     "voting.title": "Round {0} - Voting",
@@ -292,11 +302,11 @@ export const translations = {
 
     // Vote Conclusion
     "vote_conclusion.title": "Vote Conclusion",
-    "vote_conclusion.subtitle": "See if your vote was correct",
-    "vote_conclusion.you_voted_for": "You voted for:",
+    "vote_conclusion.subtitle": "Result of the vote",
+    "vote_conclusion.result_header": "Vote Result:",
     "vote_conclusion.impostor_found": "WAS THE IMPOSTOR!",
     "vote_conclusion.not_impostor": "Was NOT the impostor.",
-    "vote_conclusion.skipped_or_action": "You skipped or voted for action.",
+    "vote_conclusion.result_skipped": "No one was eliminated.",
     "vote_conclusion.continue_to_results": "Continue to Results",
     "vote_conclusion.waiting_for_host": "Waiting for host to continue...",
 

@@ -93,6 +93,7 @@ export default function RoomPage() {
           currentGamePlayer={currentGamePlayer ?? null}
           isHost={isHost}
           onReady={acknowledgeRole}
+          onAdvanceToVoting={advanceToVoting}
         />
       )}
 

@@ -9,7 +9,13 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import useSupabaseBrowser from "@/lib/supabase/browser";
-import { getRoomByCode } from "@/queries";
+import {
+  getRoomByCode,
+  getActiveGame,
+  getPlayersByRoom,
+  getCurrentRound,
+  getGamePlayers,
+} from "@/queries";
 import { getClientId } from "@/lib/game-utils";
 import { setPlayerAcknowledged } from "@/lib/supabase";
 import type { Room, Player, Game, Round } from "@/lib/supabase/types";
@@ -24,7 +30,6 @@ import {
   startNextRound as transitionStartNextRound,
   endGame as transitionEndGame,
   playAgain as transitionPlayAgain,
-  fetchGameLoopData,
 } from "./transitions";
 
 // ============ Helper Functions ============
@@ -49,8 +54,7 @@ function calculateViewPhase(
   // Map game status to view phase
   switch (game.status) {
     case "reveal":
-      // If player has acknowledged, show voting
-      return hasAckedRole ? "voting" : "reveal";
+      return "reveal";
     case "voting":
       return "voting";
     case "vote_result":
@@ -143,12 +147,34 @@ export function useGameLoop(roomCode: string): UseGameLoopReturn {
   const fetchGameData = useCallback(async () => {
     if (!room?.id) return;
 
-    const data = await fetchGameLoopData(room.id);
-    setGame(data.game);
-    setCurrentRound(data.currentRound);
-    setPlayers(data.players);
-    setGamePlayers(data.gamePlayers);
-  }, [room?.id]);
+    try {
+      // 1. Fetch active game
+      const { data: gameData } = await getActiveGame(supabase, room.id);
+      setGame(gameData as Game);
+
+      // 2. Fetch players
+      const { data: playersData } = await getPlayersByRoom(supabase, room.id);
+      setPlayers((playersData as Player[]) || []);
+
+      // 3. Fetch specific game details if game exists
+      if (gameData) {
+        const { data: roundData } = await getCurrentRound(
+          supabase,
+          gameData.id,
+          gameData.current_round ?? 1,
+        );
+        setCurrentRound(roundData as Round);
+
+        const { data: gpData } = await getGamePlayers(supabase, gameData.id);
+        setGamePlayers(gpData);
+      } else {
+        setCurrentRound(null);
+        setGamePlayers([]);
+      }
+    } catch (error) {
+      console.error("[useGameLoop] Error fetching game data:", error);
+    }
+  }, [supabase, room?.id]);
 
   const refresh = useCallback(async () => {
     await fetchRoom();
@@ -252,6 +278,29 @@ export function useGameLoop(roomCode: string): UseGameLoopReturn {
           event: "*",
           schema: "public",
           table: "rounds",
+          filter: `game_id=eq.${game.id}`,
+        },
+        () => fetchGameData(),
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase, game?.id, fetchGameData]);
+
+  // Game Players subscription (for readiness/elimination updates)
+  useEffect(() => {
+    if (!game?.id) return;
+
+    const channel = supabase
+      .channel(`gameloop-game-players-${game.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "game_players",
           filter: `game_id=eq.${game.id}`,
         },
         () => fetchGameData(),
