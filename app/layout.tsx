@@ -5,6 +5,7 @@ import "./globals.css";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { ThemeProvider } from "@/components/theme-provider";
+import { JsonLd } from "@/components/json-ld";
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -25,8 +26,58 @@ const fredoka = Fredoka({
 });
 
 export const metadata: Metadata = {
-  title: "Duplizen",
-  description: "Find the impostor among your friends!",
+  metadataBase: new URL("https://duplizen.vercel.app"),
+  title: {
+    default: "Duplizen - Social Deduction Party Game",
+    template: "%s | Duplizen",
+  },
+  description:
+    "Play the ultimate social deduction game! Find the impostor among your friends in this exciting multiplayer party game. Free to play online.",
+  keywords: [
+    "duplizen",
+    "impostor game",
+    "social deduction",
+    "party game",
+    "multiplayer game",
+    "find the impostor",
+    "jogo do impostor",
+    "jogo de dedução social",
+    "jogo de festa",
+  ],
+  authors: [{ name: "Polterware", url: "https://www.polterware.com" }],
+  creator: "Polterware",
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    alternateLocale: "pt_BR",
+    url: "https://duplizen.vercel.app",
+    siteName: "Duplizen",
+    title: "Duplizen - Social Deduction Party Game",
+    description:
+      "Find the impostor among your friends! The ultimate multiplayer social deduction party game.",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Duplizen - Social Deduction Party Game",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Duplizen - Social Deduction Party Game",
+    description:
+      "Find the impostor among your friends! The ultimate multiplayer social deduction party game.",
+    images: ["/og-image.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+  alternates: {
+    canonical: "https://duplizen.vercel.app",
+  },
 };
 
 export default function RootLayout({
@@ -36,6 +87,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className={inter.variable}>
+      <head>
+        <JsonLd />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${fredoka.variable} antialiased h-[100svh] overflow-hidden flex flex-col`}
       >

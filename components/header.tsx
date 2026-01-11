@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { LanguageSwitcher } from '@/components/language-switcher'
 import { useLanguage } from '@/stores/language-store'
 import { ModeToggle } from '@/components/mode-toggle'
-import { DoorClosed, Home, Joystick, Menu } from 'lucide-react'
+import { DoorClosed, Home, Joystick, Menu, Info } from 'lucide-react'
 import {
   Sheet,
   SheetContent,
@@ -75,6 +75,16 @@ export function Header() {
                   {t('home.join_room')}
                 </Button>
               </Link>
+              <Link passHref href="/about">
+                <Button
+                  variant="outline"
+                  className="justify-start w-full"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <Info className="mr-2 size-4" />
+                  {t('about.title')}
+                </Button>
+              </Link>
             </div>
             <SheetFooter>
               <SheetTitle>
@@ -132,6 +142,15 @@ export function Header() {
               <span >
                 {t('home.join_room')}
               </span>
+            </Button>
+          </Link>
+          <Link passHref href="/about">
+            <Button
+              variant="outline"
+              className="gap-2"
+            >
+              <Info className="size-5" />
+              <span>{t('about.title')}</span>
             </Button>
           </Link>
         </div>

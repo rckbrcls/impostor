@@ -158,6 +158,38 @@ export const translations = {
     "session.votes_received": "Votos",
     "session.votes_short": "votos",
     "session.games_played": "Partidas",
+
+    // About
+    "about.title": "Sobre o Jogo",
+    "about.subtitle":
+      "Duplizen é um jogo de dedução social multiplayer onde você precisa descobrir quem é o impostor entre seus amigos!",
+    "about.what_is_title": "O que é Duplizen?",
+    "about.what_is_desc":
+      "Duplizen é um jogo de festa para grupos de amigos. Uma pessoa é escolhida aleatoriamente como o impostor e não sabe qual é a palavra secreta. Os outros jogadores precisam descobrir quem é o impostor fazendo perguntas e observando as respostas, enquanto o impostor tenta se passar despercebido.",
+    "about.how_to_play": "Como Jogar",
+    "about.step1_title": "Crie uma Sala",
+    "about.step1_desc":
+      "Crie uma sala e compartilhe o código com seus amigos para que eles possam entrar.",
+    "about.step2_title": "Receba Sua Função",
+    "about.step2_desc":
+      "Cada jogador recebe uma função: cidadão (com a palavra secreta) ou impostor (sem a palavra).",
+    "about.step3_title": "Discuta",
+    "about.step3_desc":
+      "Todos descrevem a palavra de forma vaga. O impostor tenta se misturar sem saber a palavra.",
+    "about.step4_title": "Vote",
+    "about.step4_desc":
+      "Vote em quem você acha que é o impostor. Se acertarem, os cidadãos vencem!",
+    "about.features_title": "Características",
+    "about.feature1_title": "Dedução Social",
+    "about.feature1_desc":
+      "Use suas habilidades de observação para identificar o impostor.",
+    "about.feature2_title": "Blefe",
+    "about.feature2_desc":
+      "Como impostor, engane os outros para sobreviver às votações.",
+    "about.feature3_title": "Ranking",
+    "about.feature3_desc":
+      "Ganhe pontos por votos corretos e conquiste títulos especiais.",
+    "about.cta_title": "Pronto para jogar?",
   },
   en: {
     "footer.made_by": "made by",
@@ -310,6 +342,37 @@ export const translations = {
     "session.votes_received": "Votes",
     "session.votes_short": "votes",
     "session.games_played": "Games",
+
+    // About
+    "about.title": "About the Game",
+    "about.subtitle":
+      "Duplizen is a multiplayer social deduction game where you need to find the impostor among your friends!",
+    "about.what_is_title": "What is Duplizen?",
+    "about.what_is_desc":
+      "Duplizen is a party game for groups of friends. One person is randomly chosen as the impostor and doesn't know the secret word. Other players must figure out who the impostor is by asking questions and observing answers, while the impostor tries to blend in.",
+    "about.how_to_play": "How to Play",
+    "about.step1_title": "Create a Room",
+    "about.step1_desc":
+      "Create a room and share the code with your friends so they can join.",
+    "about.step2_title": "Get Your Role",
+    "about.step2_desc":
+      "Each player receives a role: citizen (with the secret word) or impostor (without the word).",
+    "about.step3_title": "Discuss",
+    "about.step3_desc":
+      "Everyone describes the word vaguely. The impostor tries to blend in without knowing the word.",
+    "about.step4_title": "Vote",
+    "about.step4_desc":
+      "Vote for who you think is the impostor. If correct, the citizens win!",
+    "about.features_title": "Features",
+    "about.feature1_title": "Social Deduction",
+    "about.feature1_desc":
+      "Use your observation skills to identify the impostor.",
+    "about.feature2_title": "Bluffing",
+    "about.feature2_desc": "As impostor, deceive others to survive the votes.",
+    "about.feature3_title": "Ranking",
+    "about.feature3_desc":
+      "Earn points for correct votes and unlock special titles.",
+    "about.cta_title": "Ready to play?",
   },
 } as const;
 
