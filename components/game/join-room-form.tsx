@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import useSupabaseBrowser from '@/lib/supabase/browser'
-import { getRoomByCode, getPlayerByClient, useAddPlayer } from '@/queries'
+import { getRoomByCode, getPlayerByClient } from '@/queries'
 import { getClientId } from '@/lib/game-utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -23,8 +23,6 @@ export function JoinRoomForm({ initialCode = '' }: JoinRoomFormProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const { t } = useLanguage()
-
-  const addPlayerMutation = useAddPlayer()
 
   const joinRoom = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -72,9 +70,9 @@ export function JoinRoomForm({ initialCode = '' }: JoinRoomFormProps) {
 
       // Join the room
       console.log('[DEBUG JoinRoom] Adding player to room...', { roomId: room.id, clientId, name: name.trim() })
-      await addPlayerMutation.mutateAsync({
-        roomId: room.id,
-        clientId,
+      await supabase.from('players').insert({
+        room_id: room.id,
+        client_id: clientId,
         name: name.trim(),
       })
       console.log('[DEBUG JoinRoom] Player added successfully')

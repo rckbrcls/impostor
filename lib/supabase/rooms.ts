@@ -109,6 +109,17 @@ export async function resetRoomToWaiting(roomId: string) {
   return { error };
 }
 
+/**
+ * Update room host
+ */
+export async function updateRoomHost(roomId: string, hostId: string) {
+  const { error } = await supabase
+    .from("rooms")
+    .update({ host_id: hostId })
+    .eq("id", roomId);
+  return { error };
+}
+
 // ============ Realtime Subscriptions ============
 
 /**

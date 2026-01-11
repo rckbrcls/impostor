@@ -22,6 +22,14 @@ export async function addPlayer(
 }
 
 /**
+ * Remove a player from a room
+ */
+export async function removePlayer(playerId: string) {
+  const { error } = await supabase.from("players").delete().eq("id", playerId);
+  return { error };
+}
+
+/**
  * Get all players in a room
  */
 export async function getPlayersByRoomId(roomId: string) {

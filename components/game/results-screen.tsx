@@ -1,17 +1,14 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import useSupabaseBrowser from '@/lib/supabase/browser'
 import { type Player, type Room } from '@/lib/supabase'
 import { getClientId } from '@/lib/game-utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Trophy, Home, RotateCcw, Skull, Users } from 'lucide-react'
 import { useLanguage } from '@/stores/language-store'
-import {
-  useDeleteVotesByRoom,
-  useResetPlayersForGame,
-  useResetRoom,
-} from '@/queries'
 
 interface ResultsScreenProps {
   room: Room
@@ -20,11 +17,9 @@ interface ResultsScreenProps {
 
 export function ResultsScreen({ room, players }: ResultsScreenProps) {
   const router = useRouter()
+  const supabase = useSupabaseBrowser()
   const { t } = useLanguage()
-
-  const deleteVotesMutation = useDeleteVotesByRoom()
-  const resetPlayersMutation = useResetPlayersForGame()
-  const resetRoomMutation = useResetRoom()
+  const [isResetting, setIsResetting] = useState(false)
 
   // Find the impostor
   const impostor = players.find((p) => p.is_impostor)
@@ -45,25 +40,29 @@ export function ResultsScreen({ room, players }: ResultsScreenProps) {
   const clientId = getClientId()
   const isHost = room.host_id === clientId
 
-  const isResetting =
-    deleteVotesMutation.isPending ||
-    resetPlayersMutation.isPending ||
-    resetRoomMutation.isPending
-
   const playAgain = async () => {
     if (!isHost) return
 
+    setIsResetting(true)
     try {
       // 0. Proactive Cleanup
-      await deleteVotesMutation.mutateAsync(room.id)
+      await supabase.from('votes').delete().eq('room_id', room.id)
 
       // 1. Reset all player status
-      await resetPlayersMutation.mutateAsync(room.id)
+      await supabase
+        .from('players')
+        .update({ is_impostor: false, is_eliminated: false, score: 0 })
+        .eq('room_id', room.id)
 
       // 2. Reset room to waiting (Lobby)
-      await resetRoomMutation.mutateAsync(room.id)
+      await supabase
+        .from('rooms')
+        .update({ status: 'waiting', round: 0, word: null })
+        .eq('id', room.id)
     } catch (error) {
       console.error('Erro ao reiniciar jogo:', error)
+    } finally {
+      setIsResetting(false)
     }
   }
 

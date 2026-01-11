@@ -1,13 +1,13 @@
 'use client'
 
 import { useState } from 'react'
+import useSupabaseBrowser from '@/lib/supabase/browser'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { type Player, type Room } from '@/lib/supabase'
 import { getClientId } from '@/lib/game-utils'
 import { Vote } from 'lucide-react'
 import { useLanguage } from '@/stores/language-store'
-import { useUpdateRoomStatus } from '@/queries'
 
 interface GameScreenProps {
   room: Room
@@ -18,19 +18,24 @@ interface GameScreenProps {
 }
 
 export function GameScreen({ room, players, currentPlayer, isHost, onStartVoting }: GameScreenProps) {
+  const supabase = useSupabaseBrowser()
   const clientId = getClientId()
   const isImpostor = currentPlayer?.is_impostor ?? false
   const { t } = useLanguage()
-
-  const updateRoomStatusMutation = useUpdateRoomStatus()
-  const isStartingVote = updateRoomStatusMutation.isPending
+  const [isStartingVote, setIsStartingVote] = useState(false)
 
   const handleStartVoting = async () => {
+    setIsStartingVote(true)
     try {
-      await updateRoomStatusMutation.mutateAsync({ roomId: room.id, status: 'voting' })
+      await supabase
+        .from('rooms')
+        .update({ status: 'voting' })
+        .eq('id', room.id)
       onStartVoting()
     } catch (error) {
       console.error('Erro ao iniciar votação:', error)
+    } finally {
+      setIsStartingVote(false)
     }
   }
 

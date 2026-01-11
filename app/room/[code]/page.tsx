@@ -1,15 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import useSupabaseBrowser from '@/lib/supabase/browser'
-import { useQuery } from '@supabase-cache-helpers/postgrest-react-query'
-import {
-  getRoomByCode,
-  getPlayersByRoom,
-  useRoomSubscription,
-  usePlayersSubscription,
-} from '@/queries'
+import { getRoomByCode, getPlayersByRoom } from '@/queries'
 import { getClientId } from '@/lib/game-utils'
 import { type Player, type Room } from '@/lib/supabase'
 import { Lobby } from '@/components/game/lobby'
@@ -32,41 +26,108 @@ export default function RoomPage() {
   const { t } = useLanguage()
 
   const [phase, setPhase] = useState<GamePhase>('joining')
+  const [room, setRoom] = useState<Room | null>(null)
+  const [players, setPlayers] = useState<Player[]>([])
+  const [isLoadingRoom, setIsLoadingRoom] = useState(true)
+  const [isLoadingPlayers, setIsLoadingPlayers] = useState(true)
+  const [roomError, setRoomError] = useState<boolean>(false)
 
-  // Query for room data
-  const {
-    data: roomData,
-    isLoading: isLoadingRoom,
-    error: roomError,
-  } = useQuery(getRoomByCode(supabase, code))
+  // Fetch room data
+  const fetchRoom = useCallback(async () => {
+    try {
+      const { data, error } = await getRoomByCode(supabase, code)
+      if (error) {
+        setRoomError(true)
+        return
+      }
+      setRoom(data as Room)
+    } catch {
+      setRoomError(true)
+    } finally {
+      setIsLoadingRoom(false)
+    }
+  }, [supabase, code])
 
-  // Type cast is needed because Supabase returns nullable fields
-  const room = roomData as Room | undefined
-  console.log('[DEBUG RoomPage] Room query:', { roomData, isLoadingRoom, roomError, roomId: room?.id })
+  // Fetch players data
+  const fetchPlayers = useCallback(async () => {
+    if (!room?.id) return
+    try {
+      const { data } = await getPlayersByRoom(supabase, room.id)
+      setPlayers((data ?? []) as Player[])
+    } finally {
+      setIsLoadingPlayers(false)
+    }
+  }, [supabase, room?.id])
 
-  // Query for players (only when room exists)
-  const {
-    data: playersData,
-    isLoading: isLoadingPlayers,
-  } = useQuery(getPlayersByRoom(supabase, room?.id ?? ''), {
-    enabled: !!room?.id,
-  })
+  // Initial fetch
+  useEffect(() => {
+    fetchRoom()
+  }, [fetchRoom])
 
-  // Ensure players is always an array (handle null/undefined from query)
-  // Type cast is needed because Supabase returns nullable fields
-  const players = (playersData ?? []) as Player[]
-  console.log('[DEBUG RoomPage] Players query:', { playersData, isLoadingPlayers, playersCount: players.length })
-  console.log('[DEBUG RoomPage] Players details:', players.map(p => ({ id: p.id, name: p.name, client_id: p.client_id })))
+  // Fetch players when room is available
+  useEffect(() => {
+    if (room?.id) {
+      fetchPlayers()
+    }
+  }, [room?.id, fetchPlayers])
+
+  // Realtime subscription for room
+  useEffect(() => {
+    if (!room?.id) return
+
+    const channel = supabase
+      .channel(`room-${room.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'rooms',
+          filter: `id=eq.${room.id}`,
+        },
+        () => {
+          fetchRoom()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [supabase, room?.id, fetchRoom])
+
+  // Realtime subscription for players
+  useEffect(() => {
+    if (!room?.id) return
+
+    const channel = supabase
+      .channel(`players-${room.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'players',
+          filter: `room_id=eq.${room.id}`,
+        },
+        () => {
+          fetchPlayers()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [supabase, room?.id, fetchPlayers])
+
+  console.log('[DEBUG RoomPage] Room:', { room, isLoadingRoom, roomError })
+  console.log('[DEBUG RoomPage] Players:', { players, isLoadingPlayers, playersCount: players.length })
 
   // Find current player
   const currentPlayer = players.find((p) => p.client_id === clientId) ?? null
   const isHost = room?.host_id === clientId
   console.log('[DEBUG RoomPage] Current player:', { currentPlayer, clientId, isHost })
-
-  // Subscribe to realtime updates
-  useRoomSubscription(room?.id)
-  usePlayersSubscription(room?.id)
-  console.log('[DEBUG RoomPage] Subscriptions active for roomId:', room?.id)
 
   // Handle navigation on error
   useEffect(() => {

@@ -57,6 +57,8 @@ export const translations = {
     "lobby.start": "Começar",
     "lobby.starting": "Iniciando...",
     "lobby.waiting_host": "Aguardando o host iniciar o jogo...",
+    "lobby.leave": "Sair da Sala",
+    "lobby.leaving": "Saindo...",
 
     // Game
     "game.round": "Rodada {0}",
@@ -159,6 +161,8 @@ export const translations = {
     "lobby.start": "Start",
     "lobby.starting": "Starting...",
     "lobby.waiting_host": "Waiting for host to start the game...",
+    "lobby.leave": "Leave Room",
+    "lobby.leaving": "Leaving...",
 
     // Game
     "game.round": "Round {0}",

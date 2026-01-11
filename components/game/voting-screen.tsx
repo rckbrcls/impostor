@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import useSupabaseBrowser from '@/lib/supabase/browser'
 import { type Player, type Room, type Vote } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
@@ -8,15 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { SelectionGroup, SelectionItem } from '@/components/ui/selection-card'
 import { Check, User, Flag, Loader2, Play } from 'lucide-react'
 import { useLanguage } from '@/stores/language-store'
-import { useQuery } from '@supabase-cache-helpers/postgrest-react-query'
-import {
-  getVotesByRoomRound,
-  useVotesSubscription,
-  useUpsertVote,
-  useEndGame,
-  useNextRound,
-  useEliminatePlayer,
-} from '@/queries'
+import { getVotesByRoomRound } from '@/queries'
 
 interface VotingScreenProps {
   room: Room
@@ -32,31 +24,51 @@ type VoteChoice = { type: 'player'; playerId: string } | { type: 'next_round' } 
 
 export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound, onEndGame }: VotingScreenProps) {
   const supabase = useSupabaseBrowser()
+  const [votes, setVotes] = useState<Vote[]>([])
+  const [isLoadingVotes, setIsLoadingVotes] = useState(true)
   const [myChoice, setMyChoice] = useState<VoteChoice | null>(null)
   const [hasVoted, setHasVoted] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [revealResult, setRevealResult] = useState(false)
   const [mostVotedPlayer, setMostVotedPlayer] = useState<{ player: Player | null; wasImpostor: boolean } | null>(null)
   const [decidedAction, setDecidedAction] = useState<'next_round' | 'end_game' | null>(null)
   const { t } = useLanguage()
 
-  // React Query for votes
-  const { data: votesData, isLoading: isLoadingVotes } = useQuery(getVotesByRoomRound(supabase, room.id, room.round))
+  // Fetch votes
+  const fetchVotes = useCallback(async () => {
+    const { data } = await getVotesByRoomRound(supabase, room.id, room.round)
+    setVotes((data ?? []) as Vote[])
+    setIsLoadingVotes(false)
+  }, [supabase, room.id, room.round])
 
-  // Ensure votes is always an array (handle null/undefined from query)
-  // Type cast is needed because Supabase returns nullable fields
-  const votes = (votesData ?? []) as Vote[]
+  // Initial fetch
+  useEffect(() => {
+    fetchVotes()
+  }, [fetchVotes])
 
-  // Realtime subscription
-  useVotesSubscription(room.id, room.round)
+  // Realtime subscription for votes
+  useEffect(() => {
+    const channel = supabase
+      .channel(`votes-${room.id}-${room.round}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'votes',
+          filter: `room_id=eq.${room.id}`,
+        },
+        () => {
+          fetchVotes()
+        }
+      )
+      .subscribe()
 
-  // Mutations
-  const upsertVoteMutation = useUpsertVote()
-  const endGameMutation = useEndGame()
-  const nextRoundMutation = useNextRound()
-  const eliminatePlayerMutation = useEliminatePlayer()
-
-  const isSubmitting = upsertVoteMutation.isPending
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [supabase, room.id, room.round, fetchVotes])
 
   // Safe array operations with null checks
   const safePlayersArray = players ?? []
@@ -115,6 +127,7 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
   const submitVote = async () => {
     if (!currentPlayer || !myChoice) return
 
+    setIsSubmitting(true)
     try {
       // Determine what to save based on choice
       let impostorVote: string | null = null
@@ -128,16 +141,19 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
         actionVote = 'end_game'
       }
 
-      await upsertVoteMutation.mutateAsync({
-        roomId: room.id,
+      await supabase.from('votes').upsert({
+        room_id: room.id,
         round: room.round,
-        voterId: currentPlayer.id,
-        impostorVote,
-        actionVote,
-      })
+        voter_id: currentPlayer.id,
+        impostor_vote: impostorVote,
+        action_vote: actionVote,
+      }, { onConflict: 'room_id,round,voter_id' })
+
       setHasVoted(true)
     } catch (error) {
       console.error('Erro ao votar:', error)
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -205,15 +221,15 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
     try {
       // If someone was voted and wasn't the impostor, eliminate
       if (mostVotedPlayer?.player && !mostVotedPlayer.wasImpostor) {
-        await eliminatePlayerMutation.mutateAsync({
-          playerId: mostVotedPlayer.player.id,
-          roomId: room.id,
-        })
+        await supabase
+          .from('players')
+          .update({ is_eliminated: true })
+          .eq('id', mostVotedPlayer.player.id)
       }
 
       // If someone was voted AND was the impostor, impostor lost!
       if (mostVotedPlayer?.player && mostVotedPlayer.wasImpostor) {
-        await endGameMutation.mutateAsync(room.id)
+        await supabase.from('rooms').update({ status: 'ended' }).eq('id', room.id)
         onEndGame()
         return
       }
@@ -225,13 +241,16 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
 
       // If only 2 players remain (impostor + 1), impostor wins!
       if (remainingActive <= 2) {
-        await endGameMutation.mutateAsync(room.id)
+        await supabase.from('rooms').update({ status: 'ended' }).eq('id', room.id)
         onEndGame()
         return
       }
 
       // Update room with new round (same word, same impostor)
-      await nextRoundMutation.mutateAsync({ roomId: room.id, round: room.round + 1 })
+      await supabase
+        .from('rooms')
+        .update({ status: 'playing', round: room.round + 1 })
+        .eq('id', room.id)
 
       onNextRound()
     } catch (error) {
@@ -241,7 +260,7 @@ export function VotingScreen({ room, players, currentPlayer, isHost, onNextRound
 
   const endGame = async () => {
     try {
-      await endGameMutation.mutateAsync(room.id)
+      await supabase.from('rooms').update({ status: 'ended' }).eq('id', room.id)
       onEndGame()
     } catch (error) {
       console.error('Erro ao finalizar jogo:', error)

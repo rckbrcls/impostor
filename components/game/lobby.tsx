@@ -2,19 +2,15 @@
 
 import { useEffect, useState } from 'react'
 import copy from 'copy-to-clipboard'
+import { useRouter } from 'next/navigation'
+import useSupabaseBrowser from '@/lib/supabase/browser'
 import { type Player, type Room } from '@/lib/supabase'
 import { getClientId } from '@/lib/game-utils'
 import { getRandomWord } from '@/lib/words'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Copy, Check, Play, Users } from 'lucide-react'
+import { Copy, Check, Play, Users, LogOut } from 'lucide-react'
 import { useLanguage } from '@/stores/language-store'
-import {
-  useDeleteVotesByRoom,
-  useResetPlayersForRound,
-  useSetImpostor,
-  useStartGame,
-} from '@/queries'
 
 interface LobbyProps {
   room: Room
@@ -24,23 +20,16 @@ interface LobbyProps {
 
 export function Lobby({ room, players, onGameStart }: LobbyProps) {
   const [copied, setCopied] = useState(false)
+  const [isStarting, setIsStarting] = useState(false)
+  const [isLeaving, setIsLeaving] = useState(false)
+  const router = useRouter()
+  const supabase = useSupabaseBrowser()
   const clientId = getClientId()
   const isHost = room.host_id === clientId
   const isDev = process.env.NODE_ENV === 'development'
   const minPlayers = isDev ? 1 : 3
   const canStart = players.length >= minPlayers
   const { t } = useLanguage()
-
-  const deleteVotesMutation = useDeleteVotesByRoom()
-  const resetPlayersMutation = useResetPlayersForRound()
-  const setImpostorMutation = useSetImpostor()
-  const startGameMutation = useStartGame()
-
-  const isStarting =
-    deleteVotesMutation.isPending ||
-    resetPlayersMutation.isPending ||
-    setImpostorMutation.isPending ||
-    startGameMutation.isPending
 
   // Clean old votes when entering lobby
   useEffect(() => {
@@ -51,7 +40,7 @@ export function Lobby({ room, players, onGameStart }: LobbyProps) {
       try {
         console.log('[Lobby] Cleaning votes for player:', myPlayer.name)
         if (isHost) {
-          await deleteVotesMutation.mutateAsync(room.id)
+          await supabase.from('votes').delete().eq('room_id', room.id)
         }
         console.log('[Lobby] Cleanup success')
       } catch (err) {
@@ -73,31 +62,70 @@ export function Lobby({ room, players, onGameStart }: LobbyProps) {
   const startGame = async () => {
     if (!canStart || !isHost) return
 
+    setIsStarting(true)
     try {
       // Force cleanup: Host cleans all votes before starting
       console.log('[Lobby] Host starting game, force cleaning all votes...')
-      await deleteVotesMutation.mutateAsync(room.id)
+      await supabase.from('votes').delete().eq('room_id', room.id)
 
       // Pick impostor
       const impostorIndex = Math.floor(Math.random() * players.length)
       const impostorId = players[impostorIndex].id
 
       // Reset all players
-      await resetPlayersMutation.mutateAsync(room.id)
+      await supabase
+        .from('players')
+        .update({ is_impostor: false, is_eliminated: false })
+        .eq('room_id', room.id)
 
       // Mark the impostor
-      await setImpostorMutation.mutateAsync({ playerId: impostorId, roomId: room.id })
+      await supabase
+        .from('players')
+        .update({ is_impostor: true })
+        .eq('id', impostorId)
 
       // Update room
-      await startGameMutation.mutateAsync({
-        roomId: room.id,
-        round: room.round + 1,
-        word: getRandomWord(),
-      })
+      await supabase
+        .from('rooms')
+        .update({
+          status: 'playing',
+          round: room.round + 1,
+          word: getRandomWord(),
+        })
+        .eq('id', room.id)
 
       onGameStart()
     } catch (error) {
       console.error('Erro ao iniciar jogo:', error)
+    } finally {
+      setIsStarting(false)
+    }
+  }
+
+  const handleLeave = async () => {
+    const myPlayer = players.find((p) => p.client_id === clientId)
+    if (!myPlayer) return
+
+    setIsLeaving(true)
+    try {
+      // Se for o host, transferir para o próximo jogador mais antigo antes de sair
+      if (isHost && players.length > 1) {
+        // players está ordenado por joined_at, então pegamos o próximo jogador que não é o atual
+        const nextHost = players.find((p) => p.client_id !== clientId)
+        if (nextHost) {
+          await supabase
+            .from('rooms')
+            .update({ host_id: nextHost.client_id })
+            .eq('id', room.id)
+        }
+      }
+
+      await supabase.from('players').delete().eq('id', myPlayer.id)
+      router.push('/')
+    } catch (error) {
+      console.error('Erro ao sair da sala:', error)
+    } finally {
+      setIsLeaving(false)
     }
   }
 
@@ -161,6 +189,17 @@ export function Lobby({ room, players, onGameStart }: LobbyProps) {
             {t('lobby.waiting_host')}
           </p>
         )}
+
+        {/* Leave Button */}
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={handleLeave}
+          disabled={isLeaving}
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          {isLeaving ? t('lobby.leaving') : t('lobby.leave')}
+        </Button>
       </CardContent>
     </Card>
   )

@@ -17,12 +17,14 @@ export {
   updateRoomForNextRound,
   updateRoomEnded,
   resetRoomToWaiting,
+  updateRoomHost,
   subscribeToRoom,
 } from "./rooms";
 
 // Player operations
 export {
   addPlayer,
+  removePlayer,
   getPlayersByRoomId,
   getPlayerByRoomAndClient,
   updatePlayerAsImpostor,
