@@ -35,6 +35,7 @@ interface RankingCardProps {
   bgColor: string
 }
 
+
 function RankingCard({ icon, title, description, winner, statValue, statLabel, bgColor }: RankingCardProps) {
   const { t } = useLanguage()
 
@@ -43,7 +44,7 @@ function RankingCard({ icon, title, description, winner, statValue, statLabel, b
   }
 
   return (
-    <div className={`p-4 border-2 border-black dark:border-white shadow-[2px_2px_0_0] ${bgColor}`}>
+    <div className={`p-4 border-2 border-black dark:border-white shadow-[4px_4px_0_0] rounded-none ${bgColor}`}>
       <div className="flex items-center gap-2 mb-2">
         {icon}
         <span className="font-bold text-sm">{title}</span>
@@ -51,7 +52,7 @@ function RankingCard({ icon, title, description, winner, statValue, statLabel, b
       <p className="text-xs text-muted-foreground mb-2">{description}</p>
       <div className="flex items-center justify-between">
         <span className="font-bold text-lg">{winner.playerName}</span>
-        <span className="text-sm font-mono bg-black/10 dark:bg-white/10 px-2 py-1 rounded">
+        <span className="text-sm font-mono bg-black/10 dark:bg-white/10 px-2 py-1 rounded-none">
           {statValue} {statLabel}
         </span>
       </div>
@@ -83,7 +84,7 @@ export function SessionEndedScreen({ room, players }: SessionEndedScreenProps) {
 
   if (isLoading) {
     return (
-      <Card className="w-full max-w-2xl mx-auto">
+      <Card className="w-full max-w-2xl mx-auto rounded-none">
         <CardContent className="flex items-center justify-center py-12">
           <Loader2 className="size-8 animate-spin" />
         </CardContent>
@@ -93,10 +94,10 @@ export function SessionEndedScreen({ room, players }: SessionEndedScreenProps) {
 
   if (!stats) {
     return (
-      <Card className="w-full max-w-2xl mx-auto">
+      <Card className="w-full max-w-2xl mx-auto rounded-none">
         <CardContent className="flex flex-col items-center justify-center py-12 gap-4">
           <p className="text-muted-foreground">{t('common.error')}</p>
-          <Button onClick={goHome}>
+          <Button onClick={goHome} className="rounded-none">
             <Home className="mr-2 size-4" />
             {t('results.home')}
           </Button>
@@ -106,7 +107,7 @@ export function SessionEndedScreen({ room, players }: SessionEndedScreenProps) {
   }
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
+    <Card className="w-full max-w-2xl mx-auto rounded-none">
       <CardHeader className="text-center">
         <CardTitle className="text-2xl flex items-center justify-center gap-2">
           <Trophy className="text-yellow-500" />
@@ -126,13 +127,13 @@ export function SessionEndedScreen({ room, players }: SessionEndedScreenProps) {
           {stats.players.map((p, index) => (
             <div
               key={p.playerId}
-              className={`flex items-center justify-between p-3 border-2 border-black dark:border-white shadow-[2px_2px_0_0] ${index === 0 ? 'bg-yellow-100 dark:bg-yellow-900/20' :
+              className={`flex items-center justify-between p-3 border-2 border-black dark:border-white shadow-[4px_4px_0_0] rounded-none ${index === 0 ? 'bg-yellow-100 dark:bg-yellow-900/20' :
                 index === 1 ? 'bg-gray-100 dark:bg-gray-800/20' :
                   index === 2 ? 'bg-amber-100 dark:bg-amber-900/20' : 'bg-white dark:bg-zinc-900'
                 }`}
             >
               <div className="flex items-center gap-3">
-                <span className={`flex items-center justify-center size-8 rounded-full font-bold ${index === 0 ? 'bg-yellow-500 text-white' :
+                <span className={`flex items-center justify-center size-8 rounded-none font-bold ${index === 0 ? 'bg-yellow-500 text-white' :
                   index === 1 ? 'bg-gray-400 text-white' :
                     index === 2 ? 'bg-amber-600 text-white' : 'bg-accent text-muted-foreground'
                   }`}>
@@ -197,7 +198,7 @@ export function SessionEndedScreen({ room, players }: SessionEndedScreenProps) {
         </div>
 
         {/* Detailed Stats Table */}
-        <div className="border-2 border-black dark:border-white shadow-[2px_2px_0_0] overflow-hidden">
+        <div className="border-2 border-black dark:border-white shadow-[4px_4px_0_0] overflow-hidden rounded-none">
           <div className="bg-accent p-3">
             <p className="font-bold text-sm">{t('session.stats_table')}</p>
           </div>
@@ -245,7 +246,7 @@ export function SessionEndedScreen({ room, players }: SessionEndedScreenProps) {
         </div>
 
         {/* Home Button */}
-        <Button className="w-full" onClick={goHome}>
+        <Button className="w-full rounded-none" onClick={goHome}>
           <Home className="mr-2 size-4" />
           {t('results.home')}
         </Button>

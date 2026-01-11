@@ -182,6 +182,7 @@ export function VoteConclusionScreen({
   }
 
 
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -191,7 +192,7 @@ export function VoteConclusionScreen({
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto">
+    <Card className="w-full max-w-md mx-auto rounded-none">
       <CardHeader className="text-center">
         <CardTitle className="text-2xl">{t('vote_conclusion.title')}</CardTitle>
         <CardDescription>{t('vote_conclusion.subtitle')}</CardDescription>
@@ -199,7 +200,7 @@ export function VoteConclusionScreen({
       <CardContent className="space-y-6 text-center">
 
         {myVoteResult ? (
-          <div className={`p-6 border-2 shadow-[4px_4px_0_0] ${myVoteResult.isCorrect
+          <div className={`p-6 border-2 shadow-[4px_4px_0_0] rounded-none ${myVoteResult.isCorrect
             ? 'bg-green-500/10 border-green-600 shadow-green-600 dark:border-green-400 dark:shadow-green-400'
             : 'bg-red-500/10 border-red-600 shadow-red-600 dark:border-red-400 dark:shadow-red-400'
             }`}>
@@ -226,7 +227,7 @@ export function VoteConclusionScreen({
             </div>
           </div>
         ) : (
-          <div className="p-6 border-2 border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-900">
+          <div className="p-6 border-2 border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-900 rounded-none shadow-[4px_4px_0_0] shadow-black dark:shadow-white">
             <p className="text-muted-foreground">
               {t('vote_conclusion.skipped_or_action')}
             </p>
@@ -238,7 +239,7 @@ export function VoteConclusionScreen({
             <Button
               onClick={handleContinue}
               disabled={isProcessing}
-              className="w-full text-lg h-12"
+              className="w-full text-lg h-12 rounded-none"
             >
               {isProcessing ? (
                 <Loader2 className="mr-2 size-5 animate-spin" />
