@@ -4,6 +4,7 @@ import { JoinRoomForm } from '@/components/game/join-room-form'
 import { Button } from '@/components/ui/button'
 import { useLanguage } from '@/stores/language-store'
 import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
 
 export default function JoinPage() {
   const { t } = useLanguage()
@@ -18,6 +19,7 @@ export default function JoinPage() {
               variant="ghost"
               className="w-full"
             >
+              <ArrowLeft className="mr-2 h-4 w-4" />
               {t('common.back')}
             </Button>
           </Link>

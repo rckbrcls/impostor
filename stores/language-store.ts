@@ -11,7 +11,7 @@ export const translations = {
     "language.switch": "Mudar para Inglês",
 
     // Common
-    "common.back": "← Voltar",
+    "common.back": "Voltar",
     "common.or": "ou",
     "common.copied": "Copiado!",
     "common.copy_link": "Copiar Link",
@@ -20,18 +20,18 @@ export const translations = {
     "common.you": "(você)",
 
     // Home
-    "home.title": "🕵 Impostor",
+    "home.title": "Impostor",
     "home.subtitle": "Descubra quem é o impostor entre seus amigos!",
-    "home.create_room": "🎮 Criar Nova Sala",
-    "home.join_room": "🚪 Entrar em uma Sala",
+    "home.create_room": "Criar Nova Sala",
+    "home.join_room": "Entrar em uma Sala",
 
     // Create Room
     "create_room.title": "Criar Nova Sala",
     "create_room.subtitle": "Crie uma sala e convide seus amigos para jogar",
-    "create_room.success_title": "Sala Criada! 🎉",
+    "create_room.success_title": "Sala Criada!",
     "create_room.success_desc": "Compartilhe o código com seus amigos",
     "create_room.room_code": "Código da Sala",
-    "create_room.button_create": "🎮 Criar Sala",
+    "create_room.button_create": "Criar Sala",
     "create_room.button_creating": "Criando...",
     "create_room.button_enter": "Entrar na Sala",
     "create_room.label_name": "Seu Nome",
@@ -71,7 +71,7 @@ export const translations = {
     "game.start_voting": "Iniciar Votação",
     "game.starting_voting": "Iniciando...",
     "game.waiting_host_vote": "Aguarde o host iniciar a votação...",
-    "game.eliminated": "❌",
+    "game.eliminated": "Eliminado",
     "game.ready_to_vote": "Pronto para Votar",
 
     // Voting
@@ -79,8 +79,8 @@ export const translations = {
     "voting.desc_reveal": "Resultado da votação",
     "voting.desc_ask": "Quem você acha que é o impostor?",
     "voting.most_voted_label": "O mais votado foi:",
-    "voting.result_impostor": "✅ ERA O IMPOSTOR! Vocês venceram!",
-    "voting.result_innocent": "🚫 Foi eliminado! Não era o impostor.",
+    "voting.result_impostor": "ERA O IMPOSTOR! Vocês venceram!",
+    "voting.result_innocent": "Foi eliminado! Não era o impostor.",
     "voting.result_selected": "Foi selecionado pela maioria!",
     "voting.no_votes": "Ninguém foi votado como impostor",
     "voting.processing": "Processando votos...",
@@ -88,8 +88,7 @@ export const translations = {
     "voting.end_game": "Finalizar Jogo",
     "voting.waiting_host_continue": "Aguardando o host continuar...",
     "voting.choose_option": "Escolha UMA opção:",
-    "voting.vote_impostor_label":
-      "🕵️ Votar em quem você acha que é o impostor:",
+    "voting.vote_impostor_label": "Votar em quem você acha que é o impostor:",
     "voting.vote_count": "{0} voto{1}",
     "voting.option_next_round": "Próxima rodada",
     "voting.option_end_game": "Finalizar jogo",
@@ -120,7 +119,7 @@ export const translations = {
     "language.switch": "Switch to Portuguese",
 
     // Common
-    "common.back": "← Back",
+    "common.back": "Back",
     "common.or": "or",
     "common.copied": "Copied!",
     "common.copy_link": "Copy Link",
@@ -129,18 +128,18 @@ export const translations = {
     "common.you": "(you)",
 
     // Home
-    "home.title": "🕵 Impostor",
+    "home.title": "Impostor",
     "home.subtitle": "Find the impostor among your friends!",
-    "home.create_room": "🎮 Create New Room",
-    "home.join_room": "🚪 Join a Room",
+    "home.create_room": "Create New Room",
+    "home.join_room": "Join a Room",
 
     // Create Room
     "create_room.title": "Create New Room",
     "create_room.subtitle": "Create a room and invite your friends to play",
-    "create_room.success_title": "Room Created! 🎉",
+    "create_room.success_title": "Room Created!",
     "create_room.success_desc": "Share the code with your friends",
     "create_room.room_code": "Room Code",
-    "create_room.button_create": "🎮 Create Room",
+    "create_room.button_create": "Create Room",
     "create_room.button_creating": "Creating...",
     "create_room.button_enter": "Enter Room",
     "create_room.label_name": "Your Name",
@@ -180,7 +179,7 @@ export const translations = {
     "game.start_voting": "Start Voting",
     "game.starting_voting": "Starting...",
     "game.waiting_host_vote": "Wait for host to start voting...",
-    "game.eliminated": "❌",
+    "game.eliminated": "Eliminated",
     "game.ready_to_vote": "Ready to Vote",
 
     // Voting
@@ -188,8 +187,8 @@ export const translations = {
     "voting.desc_reveal": "Voting Results",
     "voting.desc_ask": "Who do you think is the impostor?",
     "voting.most_voted_label": "The most voted was:",
-    "voting.result_impostor": "✅ WAS THE IMPOSTOR! You won!",
-    "voting.result_innocent": "🚫 Was eliminated! Was not the impostor.",
+    "voting.result_impostor": "WAS THE IMPOSTOR! You won!",
+    "voting.result_innocent": "Was eliminated! Was not the impostor.",
     "voting.result_selected": "Was selected by majority!",
     "voting.no_votes": "No one was voted as impostor",
     "voting.processing": "Processing votes...",
@@ -197,7 +196,7 @@ export const translations = {
     "voting.end_game": "End Game",
     "voting.waiting_host_continue": "Waiting for host to continue...",
     "voting.choose_option": "Choose ONE option:",
-    "voting.vote_impostor_label": "🕵️ Vote for who you think is the impostor:",
+    "voting.vote_impostor_label": "Vote for who you think is the impostor:",
     "voting.vote_count": "{0} vote{1}",
     "voting.option_next_round": "Next Round",
     "voting.option_end_game": "End Game",
@@ -236,7 +235,7 @@ interface LanguageState {
 const getTranslation = (
   language: Language,
   key: TranslationKey,
-  args: (string | number)[]
+  args: (string | number)[],
 ) => {
   let translation: string = translations[language][key] || key;
   args.forEach((arg, index) => {
@@ -257,8 +256,8 @@ const useBaseLanguageStore = create<LanguageState>()(
     }),
     {
       name: "language-storage",
-    }
-  )
+    },
+  ),
 );
 
 import { useState, useEffect } from "react";

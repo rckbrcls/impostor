@@ -37,7 +37,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className={inter.variable}>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${fredoka.variable} antialiased h-[100svh] overflow-hidden flex flex-col`}
+        className={`${geistSans.variable} ${geistMono.variable} ${fredoka.variable} antialiased h-[100svh] flex flex-col`}
       >
         <ThemeProvider
           attribute="class"
@@ -46,9 +46,9 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <Header />
-          <main className="flex-1 w-full">
+          <div className="w-full flex-1">
             {children}
-          </main>
+          </div>
           <Footer />
         </ThemeProvider>
       </body>

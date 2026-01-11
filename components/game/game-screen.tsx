@@ -15,7 +15,7 @@ import {
   getRoundsByGame
 } from '@/lib/supabase'
 import { getClientId } from '@/lib/game-utils'
-import { Vote } from 'lucide-react'
+import { Vote, VenetianMask, UserX } from 'lucide-react'
 import { useLanguage } from '@/stores/language-store'
 
 interface GameScreenProps {
@@ -93,7 +93,9 @@ export function GameScreen({
           }`}>
           {isImpostor ? (
             <>
-              <p className="text-6xl mb-4">🕵️</p>
+              <div className="flex justify-center mb-4">
+                <VenetianMask className="size-16" />
+              </div>
               <p className="text-3xl font-bold text-red-400">
                 {t('game.impostor_title')}
               </p>
@@ -125,7 +127,7 @@ export function GameScreen({
               return (
                 <span
                   key={gp.id}
-                  className={`px-3 py-1 text-sm border-2 border-black dark:border-white font-semibold ${isEliminated
+                  className={`px-3 py-1 text-sm border-2 border-black dark:border-white font-semibold flex items-center gap-1 ${isEliminated
                     ? 'bg-red-500/20 text-red-500 line-through opacity-60'
                     : gp.player_id === currentPlayer?.id
                       ? 'bg-primary text-primary-foreground'
@@ -133,7 +135,12 @@ export function GameScreen({
                     }`}
                 >
                   {gp.player?.name ?? 'Unknown'}
-                  {isEliminated && ` ${t('game.eliminated')}`}
+                  {isEliminated && (
+                    <>
+                      <UserX className="size-3" />
+                      {t('game.eliminated')}
+                    </>
+                  )}
                 </span>
               )
             })}
