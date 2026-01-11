@@ -35,21 +35,11 @@ export function Header() {
           <SheetContent side="right">
             <SheetHeader>
               <SheetTitle>
-                <span className="font-medium">
-                  {t('footer.made_by')}{' '}
-                  <a
-                    href="https://www.polterware.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-bold underline hover:text-accent decoration-2 underline-offset-4 transition-colors"
-                  >
-                    polterware
-                  </a>
-                </span>
               </SheetTitle>
-              <SheetDescription className="sr-only">
-                {t('header.nav_desc')}
-              </SheetDescription>
+              <div className="flex gap-2">
+                <LanguageSwitcher />
+                <ModeToggle />
+              </div>
             </SheetHeader>
             <div className="flex flex-col gap-3 p-4">
               <Link passHref href="/">
@@ -87,10 +77,22 @@ export function Header() {
               </Link>
             </div>
             <SheetFooter>
-              <div className="flex gap-2">
-                <LanguageSwitcher />
-                <ModeToggle />
-              </div>
+              <SheetTitle>
+                <span className="font-medium">
+                  {t('footer.made_by')}{' '}
+                  <a
+                    href="https://www.polterware.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-bold underline hover:text-accent decoration-2 underline-offset-4 transition-colors"
+                  >
+                    polterware
+                  </a>
+                </span>
+              </SheetTitle>
+              <SheetDescription className="sr-only">
+                {t('header.nav_desc')}
+              </SheetDescription>
             </SheetFooter>
           </SheetContent>
         </Sheet>
