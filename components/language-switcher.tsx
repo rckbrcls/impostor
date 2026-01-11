@@ -13,7 +13,7 @@ export function LanguageSwitcher() {
       onClick={() => setLanguage(language === 'pt' ? 'en' : 'pt')}
       className="gap-2"
     >
-      <Languages className="h-4 w-4" />
+      <Languages />
       {language === 'pt' ? 'EN' : 'PT'}
     </Button>
   );

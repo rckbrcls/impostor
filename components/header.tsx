@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { LanguageSwitcher } from '@/components/language-switcher'
 import { useLanguage } from '@/stores/language-store'
 import { ModeToggle } from '@/components/mode-toggle'
-import { Home, Menu } from 'lucide-react'
+import { DoorClosed, Home, Joystick, Menu } from 'lucide-react'
 import {
   Sheet,
   SheetContent,
@@ -39,16 +39,38 @@ export function Header() {
                 Navigation menu
               </SheetDescription>
             </SheetHeader>
-            <div className="flex flex-col gap-4 mt-4">
+            <div className="flex flex-col gap-3 p-4">
               <Link passHref href="/">
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   className="justify-start w-full"
                   onClick={() => setIsOpen(false)}
                 >
 
                   <Home className="mr-2 size-4" />
                   Home
+                </Button>
+              </Link>
+              <Link passHref href="/create">
+                <Button
+                  variant="outline"
+                  className="justify-start w-full"
+                  onClick={() => setIsOpen(false)}
+                >
+
+                  <Joystick className="mr-2 size-4" />
+                  Create New Room
+                </Button>
+              </Link>
+              <Link passHref href="/join">
+                <Button
+                  variant="outline"
+                  className="justify-start w-full"
+                  onClick={() => setIsOpen(false)}
+                >
+
+                  <DoorClosed className="mr-2 size-4" />
+                  Join a Room
                 </Button>
               </Link>
             </div>
@@ -62,16 +84,41 @@ export function Header() {
 
       {/* Desktop View: Full Header */}
       <header className="hidden sm:flex items-center justify-between border-b-2 border-black dark:border-white bg-white p-4 dark:bg-zinc-950 shadow-sm relative z-40">
-        <Link passHref href="/">
-          <Button
-            variant="outline"
-            className="gap-2"
-          >
+        <div className="flex gap-2">
+          <Link passHref href="/">
+            <Button
+              variant="outline"
+              className="gap-2"
+            >
 
-            <Home className="size-5" />
-            <span className="font-bold text-lg">Home</span>
-          </Button>
-        </Link>
+              <Home className="size-5" />
+              <span >Home</span>
+            </Button>
+
+          </Link>
+          <Link passHref href="/create">
+            <Button
+              variant="outline"
+              className="gap-2"
+            >
+
+              <Joystick className="size-5" />
+              <span >Create New Room</span>
+            </Button>
+          </Link>
+          <Link passHref href="/join">
+            <Button
+              variant="outline"
+              className="gap-2"
+            >
+
+              <DoorClosed className="size-5" />
+              <span >
+                Join a Room
+              </span>
+            </Button>
+          </Link>
+        </div>
         <div className="flex items-center gap-2">
           <LanguageSwitcher />
           <ModeToggle />

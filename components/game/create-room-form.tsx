@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Copy, Check, Users } from 'lucide-react'
+import { Copy, Check, Users, PartyPopper, Joystick } from 'lucide-react'
 import { useLanguage } from '@/stores/language-store'
 import { ConfettiButton } from '../ui/confetti'
 
@@ -71,7 +71,10 @@ export function CreateRoomForm() {
     return (
       <Card className="w-full max-w-md mx-auto">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">{t('create_room.success_title')}</CardTitle>
+          <CardTitle className="text-2xl flex items-center justify-center gap-2">
+            {t('create_room.success_title')}
+            <PartyPopper className="h-6 w-6" />
+          </CardTitle>
           <CardDescription>{t('create_room.success_desc')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -116,7 +119,14 @@ export function CreateRoomForm() {
           onClick={handleCreateRoom}
           disabled={isLoading || !hostName.trim()}
         >
-          {isLoading ? t('create_room.button_creating') : t('create_room.button_create')}
+          {isLoading ? (
+            t('create_room.button_creating')
+          ) : (
+            <>
+              <Joystick className="mr-2 h-4 w-4" />
+              {t('create_room.button_create')}
+            </>
+          )}
         </ConfettiButton>
       </CardContent>
     </Card>

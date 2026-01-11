@@ -19,7 +19,7 @@ import { getClientId } from '@/lib/game-utils'
 import { getRandomWord } from '@/lib/words'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Trophy, Home, RotateCcw, Skull, Users } from 'lucide-react'
+import { Trophy, Home, RotateCcw, Skull, Users, VenetianMask } from 'lucide-react'
 import { useLanguage } from '@/stores/language-store'
 
 interface ResultsScreenProps {
@@ -122,7 +122,10 @@ export function ResultsScreen({ room, game, gamePlayers, players, onPlayAgain }:
     return (
       <Card className="w-full max-w-md mx-auto">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">🏆 {t('results.ranking_title', 'Ranking Final')}</CardTitle>
+          <CardTitle className="text-2xl flex items-center justify-center gap-2">
+            <Trophy className="text-yellow-500" />
+            {t('results.ranking_title', 'Ranking Final')}
+          </CardTitle>
           <CardDescription>
             {t('results.session_ended', 'Sessão encerrada')}
           </CardDescription>
@@ -193,8 +196,9 @@ export function ResultsScreen({ room, game, gamePlayers, players, onPlayAgain }:
           : 'bg-green-500/20'
           }`}>
           <p className="text-sm text-muted-foreground mb-1">{t('results.impostor_was')}</p>
-          <p className="text-2xl font-bold">
-            🕵️ {impostor?.name ?? t('results.unknown')}
+          <p className="text-2xl font-bold flex items-center justify-center gap-2">
+            <VenetianMask className="size-8" />
+            {impostor?.name ?? t('results.unknown')}
           </p>
           {impostorWon && (
             <p className="text-sm text-red-400 mt-2">
@@ -219,7 +223,7 @@ export function ResultsScreen({ room, game, gamePlayers, players, onPlayAgain }:
                   }`}
               >
                 {gp.player?.name ?? 'Unknown'}
-                {gp.is_impostor && ' 🕵️'}
+                {gp.is_impostor && <VenetianMask className="inline size-4 ml-1" />}
               </span>
             ))}
           </div>
