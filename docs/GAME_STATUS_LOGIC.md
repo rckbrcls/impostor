@@ -161,3 +161,103 @@ stateDiagram-v2
     - 💀 Most Suspicious (most times eliminated)
     - 👀 Most Accused (most votes received)
   - **Detailed Statistics Table** - Per-player breakdown of all stats
+
+---
+
+## Game Loop Engine
+
+A centralized engine for managing game state, transitions, and actions.
+
+### File Structure
+
+| File                               | Purpose                                          |
+| :--------------------------------- | :----------------------------------------------- |
+| `lib/game-engine/types.ts`         | Type definitions for phases, states, and actions |
+| `lib/game-engine/state-machine.ts` | Valid transitions and validation functions       |
+| `lib/game-engine/transitions.ts`   | Centralized transition functions                 |
+| `lib/game-engine/hooks.ts`         | `useGameLoop` React hook                         |
+| `lib/game-engine/index.ts`         | Main exports                                     |
+
+### Usage
+
+```tsx
+import { useGameLoop } from "@/lib/game-engine";
+
+function GamePage({ roomCode }: { roomCode: string }) {
+  const {
+    // State
+    viewPhase,
+    room,
+    game,
+    currentRound,
+    players,
+    gamePlayers,
+
+    // Computed
+    currentPlayer,
+    currentGamePlayer,
+    isHost,
+    isImpostor,
+
+    // Loading
+    isLoading,
+    isTransitioning,
+
+    // Actions
+    startGame,
+    advanceToVoting,
+    processVoteResult,
+    proceedToConclusion,
+    startNextRound,
+    endGame,
+    playAgain,
+    endSession,
+    acknowledgeRole,
+    refresh,
+  } = useGameLoop(roomCode);
+
+  // Render based on viewPhase
+  switch (viewPhase) {
+    case "lobby":
+      return <Lobby onStart={() => startGame("apple")} />;
+    case "reveal":
+      return <GameScreen onReady={acknowledgeRole} />;
+    case "voting":
+      return <VotingScreen />;
+    // ...
+  }
+}
+```
+
+### Valid Transitions
+
+#### Room Transitions
+
+```
+waiting → playing (startGame)
+playing → game_finished (endSession)
+```
+
+#### Game Transitions
+
+```
+reveal → voting (advanceToVoting / acknowledgeRole)
+voting → vote_result (processVoteResult)
+vote_result → vote_conclusion (proceedToConclusion)
+vote_conclusion → voting (startNextRound)
+vote_conclusion → game_over (endGame)
+game_over → reveal (playAgain)
+```
+
+### ViewPhase Mapping
+
+| ViewPhase         | Condition                                        |
+| :---------------- | :----------------------------------------------- |
+| `joining`         | No room or no current player                     |
+| `lobby`           | Room waiting, no game                            |
+| `reveal`          | Game status = reveal, player hasn't acknowledged |
+| `voting`          | Game status = reveal (acked) or voting           |
+| `vote_result`     | Game status = vote_result                        |
+| `vote_conclusion` | Game status = vote_conclusion                    |
+| `game_over`       | Game status = game_over                          |
+| `room_ended`      | Room status = game_finished                      |
