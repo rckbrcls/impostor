@@ -231,7 +231,7 @@ export function VotingScreen({
 
         <>
           {amIEliminated ? (
-            <div className="p-8 text-center bg-red-500/10 border-2 border-red-500 dark:border-red-500 shadow-[4px_4px_0_0] shadow-black dark:shadow-white">
+            <div className="p-8 text-center bg-red-500/10 border-2 border-red-500 dark:border-red-500 shadow-[4px_4px_0_0] shadow-red-500">
               <UserX className="mx-auto h-12 w-12 text-red-500 mb-4" />
               <h3 className="text-lg font-bold text-red-600 dark:text-red-400 mb-2">{t('game.eliminated')}</h3>
               <p className="text-sm font-medium">
