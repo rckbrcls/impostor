@@ -4,7 +4,7 @@ export function JsonLd() {
     "@type": "WebApplication",
     name: "Duplizen",
     description:
-      "A multiplayer social deduction party game where players try to find the impostor among their friends.",
+      "A realtime multiplayer social deduction game where everyone plays on their own phone. No app download required - find the impostor among your friends directly in the browser.",
     url: "https://duplizen.vercel.app",
     applicationCategory: "GameApplication",
     operatingSystem: "Web Browser",

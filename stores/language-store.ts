@@ -162,10 +162,10 @@ export const translations = {
     // About
     "about.title": "Sobre o Jogo",
     "about.subtitle":
-      "Duplizen é um jogo de dedução social multiplayer onde você precisa descobrir quem é o impostor entre seus amigos!",
+      "Duplizen é um jogo de dedução social em tempo real. Cada um joga do seu próprio celular sem precisar baixar nada!",
     "about.what_is_title": "O que é Duplizen?",
     "about.what_is_desc":
-      "Duplizen é um jogo para grupos de amigos. Uma pessoa é escolhida aleatoriamente como o impostor e não sabe qual é a palavra secreta. Os outros jogadores precisam descobrir quem é o impostor fazendo perguntas e observando as respostas, enquanto o impostor tenta se passar despercebido.",
+      "Duplizen é um jogo online para grupos. Diferente de outros jogos onde se passa o celular, aqui cada um usa seu próprio dispositivo para ver a palavra secreta e votar em tempo real. Uma pessoa é o impostor e deve se misturar sem saber a palavra!",
     "about.how_to_play": "Como Jogar",
     "about.step1_title": "Crie uma Sala",
     "about.step1_desc":
@@ -180,12 +180,12 @@ export const translations = {
     "about.step4_desc":
       "Vote em quem você acha que é o impostor. Se acertarem, os cidadãos vencem!",
     "about.features_title": "Características",
-    "about.feature1_title": "Dedução Social",
+    "about.feature1_title": "100% Online",
     "about.feature1_desc":
-      "Use suas habilidades de observação para identificar o impostor.",
-    "about.feature2_title": "Blefe",
+      "Sem app para baixar. Acesse o site e jogue na hora.",
+    "about.feature2_title": "Dispositivos Individuais",
     "about.feature2_desc":
-      "Como impostor, engane os outros para sobreviver às votações.",
+      "Cada um joga do seu celular. Nada de ficar passando telefone!",
     "about.feature3_title": "Ranking",
     "about.feature3_desc":
       "Ganhe pontos por votos corretos e conquiste títulos especiais.",
@@ -346,10 +346,10 @@ export const translations = {
     // About
     "about.title": "About the Game",
     "about.subtitle":
-      "Duplizen is a multiplayer social deduction game where you need to find the impostor among your friends!",
+      "Duplizen is a realtime social deduction game. Everyone plays from their own phone without downloading anything!",
     "about.what_is_title": "What is Duplizen?",
     "about.what_is_desc":
-      "Duplizen is a game for groups of friends. One person is randomly chosen as the impostor and doesn't know the secret word. Other players must figure out who the impostor is by asking questions and observing answers, while the impostor tries to blend in.",
+      "Duplizen is an online party game. Unlike games where you pass a phone around, here everyone uses their own device to see the secret word and vote in real-time. One person is the impostor and must blend in without knowing the word!",
     "about.how_to_play": "How to Play",
     "about.step1_title": "Create a Room",
     "about.step1_desc":
@@ -364,11 +364,12 @@ export const translations = {
     "about.step4_desc":
       "Vote for who you think is the impostor. If correct, the citizens win!",
     "about.features_title": "Features",
-    "about.feature1_title": "Social Deduction",
+    "about.feature1_title": "100% Online",
     "about.feature1_desc":
-      "Use your observation skills to identify the impostor.",
-    "about.feature2_title": "Bluffing",
-    "about.feature2_desc": "As impostor, deceive others to survive the votes.",
+      "No app download. Just visit the site and play instantly.",
+    "about.feature2_title": "Individual Devices",
+    "about.feature2_desc":
+      "Everyone plays on their own phone. No more passing devices around!",
     "about.feature3_title": "Ranking",
     "about.feature3_desc":
       "Earn points for correct votes and unlock special titles.",

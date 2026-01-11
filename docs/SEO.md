@@ -14,13 +14,13 @@ The application implements a comprehensive SEO strategy with bilingual support (
 
 The root layout exports a `metadata` object with:
 
-| Property        | Value                                      |
-| --------------- | ------------------------------------------ |
-| **Title**       | "Duplizen - Social Deduction Game"         |
-| **Template**    | "%s \| Duplizen" (for child pages)         |
-| **Description** | Optimized description in English (default) |
-| **Keywords**    | Bilingual keywords (EN + PT)               |
-| **Author**      | Polterware                                 |
+| Property        | Value                                                                                                                                                       |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Title**       | "Duplizen - Social Deduction Game"                                                                                                                          |
+| **Template**    | "%s \| Duplizen" (for child pages)                                                                                                                          |
+| **Description** | "Play the ultimate social deduction game! Find the impostor among your friends in real-time. Everyone plays from their own phone - no app download needed!" |
+| **Keywords**    | "online", "realtime", "no download", "play on mobile", "multi-device" + standard keywords                                                                   |
+| **Author**      | Polterware                                                                                                                                                  |
 
 ---
 
