@@ -15,11 +15,11 @@ The application separates the concept of a **Room** (the gathering place) from a
 
 Controls the high-level state of the lobby/session.
 
-| Status          | Description                                           | UI Component                         |
-| :-------------- | :---------------------------------------------------- | :----------------------------------- |
-| `waiting`       | Initial state. Players join the lobby.                | `<Lobby />`                          |
-| `playing`       | A session is active. Games can be created and played. | `<GameScreen />`, `<VotingScreen />` |
-| `game_finished` | The host ended the session. Shows global ranking.     | `<ResultsScreen />` (Ranking Mode)   |
+| Status          | Description                                             | UI Component                         |
+| :-------------- | :------------------------------------------------------ | :----------------------------------- |
+| `waiting`       | Initial state. Players join the lobby.                  | `<Lobby />`                          |
+| `playing`       | A session is active. Games can be created and played.   | `<GameScreen />`, `<VotingScreen />` |
+| `game_finished` | The host ended the session. Shows global stats/ranking. | `<SessionEndedScreen />`             |
 
 ### 2. Game Status (`games.status`)
 
@@ -29,9 +29,27 @@ Controls the specific phase of the current match. Only active when Room is `play
 | :---------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------- |
 | `reveal`          | **Start of Game**. Shows Role (Impostor/Citizen) and Secret Word. **Note:** Players can individually advance to the `voting` screen by clicking "Ready", even if the global status is still `reveal`. This status acts as a soft sync barrier. | `<GameScreen />`                       |
 | `voting`          | **Discussion/Voting Phase**. Players discuss and vote on who is the impostor.                                                                                                                                                                  | `<VotingScreen />`                     |
-| `vote_conclusion` | **Individual Vote Result**. Players see if their individual vote was correct (Impostor or not).                                                                                                                                                | `<VoteConclusionScreen />`             |
+| `vote_conclusion` | **Individual Vote Result**. Players see if their individual vote was correct (Impostor or not). **Scoring happens here.**                                                                                                                      | `<VoteConclusionScreen />`             |
 | `vote_result`     | **Round Results**. Shows who received votes and the outcome (Next Round / Elimination).                                                                                                                                                        | `<VotingScreen />` (Result Mode)       |
 | `game_over`       | **End of Game**. A winner is determined (Impostor or Players).                                                                                                                                                                                 | `<ResultsScreen />` (Game Result Mode) |
+
+---
+
+## Scoring System
+
+Points are awarded in the `<VoteConclusionScreen />` when the host clicks "Continue".
+
+| Event                               | Points | Description                                       |
+| :---------------------------------- | -----: | :------------------------------------------------ |
+| **Correct Vote**                    |    +10 | Voting for the actual impostor                    |
+| **Impostor Survives Round**         |     +5 | Impostor earns points for each round they survive |
+| **Players Win (Catch Impostor)**    |    +20 | Bonus to all non-impostor players                 |
+| **Impostor Wins (1v1 or Vote End)** |    +20 | Bonus to the impostor                             |
+
+### Scoring Logic Location
+
+- File: `components/game/vote-conclusion-screen.tsx`
+- Function: `handleContinue()`
 
 ---
 
@@ -67,8 +85,9 @@ stateDiagram-v2
 
         state "Game: VoteConclusion" as Game_VoteConclusion {
             [*] --> ShowIndividualFeedback
-            ShowIndividualFeedback --> Game_Voting: Host clicks "Continue" (New Round)
-            ShowIndividualFeedback --> Game_GameOver: Impostor Caught OR Impostor Wins OR Host Ends Game
+            ShowIndividualFeedback --> AwardPoints: Calculate Scores
+            AwardPoints --> Game_Voting: Host clicks "Continue" (New Round)
+            AwardPoints --> Game_GameOver: Impostor Caught OR Impostor Wins OR Host Ends Game
         }
 
         state "Game: GameOver" as Game_GameOver {
@@ -80,12 +99,12 @@ stateDiagram-v2
     Room_Playing --> Room_GameFinished: Host clicks "End Session"
 
     state "Room: GameFinished" as Room_GameFinished {
-        [*] --> ShowGlobalRanking
-        ShowGlobalRanking --> [*]: Go Home
+        [*] --> ShowSessionStats
+        ShowSessionStats --> [*]: Go Home
     }
 ```
 
-## detailed Transitions
+## Detailed Transitions
 
 ### 1. Starting a Game
 
@@ -120,8 +139,9 @@ stateDiagram-v2
 - **From Vote Conclusion**:
   - **Trigger**: Host clicks "Continue".
   - **Action**:
-    - **Next Round**: Creates a new round and sets `games.status` back to `'voting'`.
-    - **Game Over**: If the Impostor is caught, or the Impostor wins (1v1), or the Host manually ends the game, update `games.status` to `'game_over'`.
+    1. **Award Points** based on voting accuracy and game state.
+    2. **Next Round**: Creates a new round and sets `games.status` back to `'voting'`.
+    3. **Game Over**: If the Impostor is caught, or the Impostor wins (1v1), or the Host manually ends the game, update `games.status` to `'game_over'`.
 
 ### 5. Play Again
 
@@ -132,4 +152,12 @@ stateDiagram-v2
 
 - **Trigger**: Host clicks "End Session" in `<ResultsScreen />`.
 - **Action**: Update `rooms.status` to `'game_finished'`.
-- **Result**: All players see the final leaderboard showing scores accumulated across all games in the session.
+- **Result**: All players see the `<SessionEndedScreen />` with:
+  - **Final Score Ranking** - Players sorted by total points
+  - **Special Rankings**:
+    - 🎯 Best Detective (most correct votes on impostor)
+    - 🎭 Master of Disguise (most rounds survived as impostor)
+    - 🤔 Most Indecisive (most "skip round" votes)
+    - 💀 Most Suspicious (most times eliminated)
+    - 👀 Most Accused (most votes received)
+  - **Detailed Statistics Table** - Per-player breakdown of all stats
