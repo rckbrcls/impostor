@@ -34,7 +34,19 @@ export function Header() {
           </SheetTrigger>
           <SheetContent side="right">
             <SheetHeader>
-              <SheetTitle>{t('header.menu')}</SheetTitle>
+              <SheetTitle>
+                <span className="font-medium">
+                  {t('footer.made_by')}{' '}
+                  <a
+                    href="https://www.polterware.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-bold underline hover:text-accent decoration-2 underline-offset-4 transition-colors"
+                  >
+                    polterware
+                  </a>
+                </span>
+              </SheetTitle>
               <SheetDescription className="sr-only">
                 {t('header.nav_desc')}
               </SheetDescription>
@@ -74,22 +86,11 @@ export function Header() {
                 </Button>
               </Link>
             </div>
-            <SheetFooter className="mt-auto flex flex-row justify-between items-center gap-2 p-4 pb-8 border-t">
+            <SheetFooter>
               <div className="flex gap-2">
                 <LanguageSwitcher />
                 <ModeToggle />
               </div>
-              <span className="text-xs font-medium mr-auto text-left">
-                {t('footer.made_by')}{' '}
-                <a
-                  href="https://www.polterware.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-bold underline hover:text-accent decoration-2 underline-offset-4 transition-colors"
-                >
-                  polterware
-                </a>
-              </span>
             </SheetFooter>
           </SheetContent>
         </Sheet>
