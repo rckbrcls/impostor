@@ -51,7 +51,7 @@ export function Header() {
                   Home
                 </Button>
               </Link>
-              <Link passHref href="/">
+              <Link passHref href="/create">
                 <Button
                   variant="outline"
                   className="justify-start w-full"
@@ -62,7 +62,7 @@ export function Header() {
                   Create New Room
                 </Button>
               </Link>
-              <Link passHref href="/">
+              <Link passHref href="/join">
                 <Button
                   variant="outline"
                   className="justify-start w-full"
@@ -96,7 +96,7 @@ export function Header() {
             </Button>
 
           </Link>
-          <Link passHref href="/">
+          <Link passHref href="/create">
             <Button
               variant="outline"
               className="gap-2"
@@ -106,7 +106,7 @@ export function Header() {
               <span >Create New Room</span>
             </Button>
           </Link>
-          <Link passHref href="/">
+          <Link passHref href="/join">
             <Button
               variant="outline"
               className="gap-2"
