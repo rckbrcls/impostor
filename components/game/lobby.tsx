@@ -17,7 +17,7 @@ import { getClientId } from '@/lib/game-utils'
 import { getRandomWord } from '@/lib/words'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Copy, Check, Play, Users, LogOut } from 'lucide-react'
+import { Copy, Check, Play, Users, LogOut, Crown, Gamepad2 } from 'lucide-react'
 import { useLanguage } from '@/stores/language-store'
 
 interface LobbyProps {
@@ -159,9 +159,11 @@ export function Lobby({ room, players, onGameStart }: LobbyProps) {
                 key={player.id}
                 className="flex items-center gap-2 border-2 border-black dark:border-white shadow-[2px_2px_0_0] dark:shadow-white bg-white dark:bg-zinc-900 px-3 py-2"
               >
-                <span className="text-lg">
-                  {player.client_id === room.host_id ? '👑' : '🎮'}
-                </span>
+                {player.client_id === room.host_id ? (
+                  <Crown className="size-5" />
+                ) : (
+                  <Gamepad2 className="size-5" />
+                )}
                 <span className="font-medium">{player.name}</span>
                 {player.client_id === clientId && (
                   <span className="text-xs text-muted-foreground">{t('common.you')}</span>
