@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import useSupabaseBrowser from '@/lib/supabase/browser'
 import {
@@ -12,7 +12,8 @@ import {
   createGamePlayers,
   setImpostor,
   createRound,
-  updateRoomStatus
+  updateRoomStatus,
+  getRoundsByGame
 } from '@/lib/supabase'
 import { getClientId } from '@/lib/game-utils'
 import { getRandomWord } from '@/lib/words'
@@ -34,14 +35,29 @@ export function ResultsScreen({ room, game, gamePlayers, players, onPlayAgain }:
   const supabase = useSupabaseBrowser()
   const { t } = useLanguage()
   const [isResetting, setIsResetting] = useState(false)
+  const [impostorWon, setImpostorWon] = useState<boolean>(false)
 
   // Find the impostor
   const impostorGp = gamePlayers.find((gp) => gp.is_impostor)
   const impostor = impostorGp?.player
 
-  // Check who won - impostor wins if game ended without being caught
-  // This is a simplified check - in a real implementation we'd need to track this better
-  const impostorWon = impostorGp && game.status === 'game_over'
+  useEffect(() => {
+    async function checkWinner() {
+      if (!impostor) return
+
+      // Fetch all rounds to see if impostor was eliminated
+      const { data: rounds } = await getRoundsByGame(game.id)
+
+      const wasEliminated = rounds.some(r => r.eliminated_player_id === impostor.id)
+
+      // Impostor wins if they were NOT eliminated
+      // (Even if game ended by vote 1v1, they weren't eliminated in that vote, someone else was, or game ended by action)
+      // The only way Impostor loses is if they were eliminated.
+      setImpostorWon(!wasEliminated)
+    }
+
+    checkWinner()
+  }, [game.id, impostor])
 
   const goHome = () => {
     router.push('/')

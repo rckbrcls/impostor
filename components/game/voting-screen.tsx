@@ -17,7 +17,8 @@ import {
   updateGameStatus,
   updateGameRound,
   createRound,
-  endGame
+  endGame,
+  getRoundsByGame
 } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -292,7 +293,27 @@ export function VotingScreen({
         await updateRoundEliminated(currentRound.id, mostVotedPlayer.player.id)
 
         // Check if only 2 players remain (impostor wins)
-        const remainingCount = gamePlayers.length - 1 // -1 for the eliminated player
+        // We must check ALL eliminations from ALL rounds
+        const { data: allRounds } = await getRoundsByGame(game.id)
+
+        // Count confirmed eliminations (including the one we just did, IF it's reflected in DB distinct from this flow,
+        // but 'updateRoundEliminated' updates THIS round row. 'allRounds' might or might not include it yet depending on consistency.
+        // To be safe, we can look at the data returned or just count locally.)
+
+        let totalEliminated = 0
+        // Add previous rounds eliminations
+        allRounds.forEach(r => {
+          if (r.id !== currentRound.id && r.eliminated_player_id) {
+            totalEliminated++
+          }
+        })
+        // Add current elimination
+        totalEliminated++
+
+        const remainingCount = gamePlayers.length - totalEliminated
+
+        console.log('Players remaining:', remainingCount, 'Total:', gamePlayers.length, 'Eliminated:', totalEliminated)
+
         if (remainingCount <= 2) {
           await endGame(game.id)
           onRoundEnd()
