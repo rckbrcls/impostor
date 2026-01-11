@@ -40,7 +40,7 @@ export const translations = {
     // Join Room
     "join_room.title": "Entrar em uma Sala",
     "join_room.subtitle": "Digite o código da sala e seu nome",
-    "join_room.placeholder_code": "Código da sala (ex: ABC123)",
+    "join_room.placeholder_code": "Código da sala",
     "join_room.placeholder_name": "Seu nome",
     "join_room.button_join": "Entrar na Sala",
     "join_room.button_joining": "Entrando...",
@@ -144,7 +144,7 @@ export const translations = {
     // Join Room
     "join_room.title": "Join a Room",
     "join_room.subtitle": "Enter the room code and your name",
-    "join_room.placeholder_code": "Room code (e.g. ABC123)",
+    "join_room.placeholder_code": "Room code",
     "join_room.placeholder_name": "Your name",
     "join_room.button_join": "Join Room",
     "join_room.button_joining": "Joining...",

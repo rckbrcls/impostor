@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Copy, Check, Users } from 'lucide-react'
 import { useLanguage } from '@/stores/language-store'
+import { ConfettiButton } from '../ui/confetti'
 
 export function CreateRoomForm() {
   const router = useRouter()
@@ -110,14 +111,13 @@ export function CreateRoomForm() {
             onChange={(e) => setHostName(e.target.value)}
           />
         </div>
-        <Button
-          className="w-full"
-          size="lg"
+        <ConfettiButton
+          className="w-full size-lg"
           onClick={handleCreateRoom}
           disabled={isLoading || !hostName.trim()}
         >
           {isLoading ? t('create_room.button_creating') : t('create_room.button_create')}
-        </Button>
+        </ConfettiButton>
       </CardContent>
     </Card>
   )
