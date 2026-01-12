@@ -72,6 +72,12 @@ export default function RoomPage() {
   // But let's assume 'joining' phase handles the "Not Valid" or "Not Joined" case for now.
   // If useGameLoop returns null room but we are not loading, we assume it's valid to show JoinRoomForm (which might fail validation if room doesn't exist).
 
+  // Helper to determine if we should show waiting screen locally
+  const isReady = currentGamePlayer?.role_acknowledged ?? false
+  const showWaitingScreen =
+    viewPhase === 'waiting_for_start' || (viewPhase === 'reveal' && isReady)
+  const showGameScreen = viewPhase === 'reveal' && !isReady
+
   return (
     <main className="min-h-full p-4 flex items-center justify-center">
       {viewPhase === 'joining' && <JoinRoomForm initialCode={code} />}
@@ -84,7 +90,7 @@ export default function RoomPage() {
         />
       )}
 
-      {viewPhase === 'reveal' && room && game && currentRound && (
+      {showGameScreen && room && game && currentRound && (
         <GameScreen
           room={room}
           game={game}
@@ -97,7 +103,7 @@ export default function RoomPage() {
         />
       )}
 
-      {viewPhase === 'waiting_for_start' && (
+      {showWaitingScreen && (
         <WaitingForPlayersScreen
           gamePlayers={gamePlayers}
           isHost={isHost}

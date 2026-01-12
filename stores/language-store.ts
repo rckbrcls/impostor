@@ -83,6 +83,7 @@ export const translations = {
     "game.waiting_desc":
       "A votação começará assim que todos estiverem prontos.",
     "game.players_ready": "jogadores prontos",
+    "game.waiting_for_players": "Aguardando jogadores...",
     "game.host_waiting_hint":
       "Como host, o jogo avançará automaticamente quando todos estiverem prontos.",
 
@@ -272,6 +273,7 @@ export const translations = {
     "game.waiting_title": "Waiting for Players",
     "game.waiting_desc": "The voting will start once everyone is ready.",
     "game.players_ready": "players ready",
+    "game.waiting_for_players": "Waiting for players...",
     "game.host_waiting_hint":
       "As host, the game will advance automatically when everyone is ready.",
 

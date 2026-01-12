@@ -26,6 +26,7 @@ export type RoomPhase = "waiting" | "playing" | "game_finished";
 export type GamePhase =
   | "reveal"
   | "voting"
+  | "waiting_for_start"
   | "vote_result"
   | "vote_conclusion"
   | "game_over";

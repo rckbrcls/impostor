@@ -157,7 +157,7 @@ export function GameScreen({
           onClick={handleReady}
         >
           <Vote className="mr-2 size-4" />
-          {t('game.ready_to_vote') || 'Pronto para Votar'}
+          {t('game.ready_to_vote') || 'Ready to Vote'}
         </Button>
       </CardContent>
     </Card>

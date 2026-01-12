@@ -30,6 +30,7 @@ import {
   startNextRound as transitionStartNextRound,
   endGame as transitionEndGame,
   playAgain as transitionPlayAgain,
+  checkAndAdvanceToWaiting,
 } from "./transitions";
 
 // ============ Helper Functions ============
@@ -55,7 +56,9 @@ function calculateViewPhase(
   // Map game status to view phase
   switch (game.status) {
     case "reveal":
-      return hasAckedRole || dbAckedRole ? "waiting_for_start" : "reveal";
+      return "reveal";
+    case "waiting_for_start":
+      return "waiting_for_start";
     case "voting":
       return "voting";
     case "vote_result":
@@ -237,9 +240,18 @@ export function useGameLoop(roomCode: string): UseGameLoopReturn {
     localStorage.setItem(key, "true");
     setHasAckedRole(true);
 
-    // Sync with DB
-    setPlayerAcknowledged(game.id, currentPlayer.id).catch(console.error);
-  }, [game?.id, currentRound?.id, currentPlayer?.id]);
+    // Sync with DB and check if everyone is ready
+    setPlayerAcknowledged(game.id, currentPlayer.id)
+      .then(async () => {
+        // We pass the game object, but we need to make sure we're using the latest state
+        // However, for the id and status check (inside transition), the current game object is fine
+        // provided the status hasn't changed from reveal (which it shouldn't have yet)
+        if (game.status === "reveal") {
+          await checkAndAdvanceToWaiting(game);
+        }
+      })
+      .catch(console.error);
+  }, [game, currentRound?.id, currentPlayer?.id]);
 
   // ============ Realtime Subscriptions ============
 
