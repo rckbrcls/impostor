@@ -94,12 +94,27 @@ type ViewPhase =
   | "joining" // Precisa entrar na sala
   | "lobby" // Aguardando início
   | "reveal" // Vendo role/palavra
+  | "waiting_for_start" // Aguardando outros confirmarem role
   | "voting" // Votando
   | "vote_result" // Resultado da votação
-  | "vote_conclusion" // Feedback individual
+  | "vote_conclusion" // Resultado da eliminação (se era impostor ou não)
   | "game_over" // Fim do jogo
   | "room_ended"; // Sessão encerrada
 ```
+
+### Lógica de ViewPhase
+
+| ViewPhase           | Condição                        |
+| :------------------ | :------------------------------ |
+| `joining`           | Sem sala ou sem jogador atual   |
+| `lobby`             | Room status = `waiting`         |
+| `reveal`            | Game status = `reveal`          |
+| `waiting_for_start` | Game status = `reveal` + Ack    |
+| `voting`            | Game status = `voting`          |
+| `vote_result`       | Game status = `vote_result`     |
+| `vote_conclusion`   | Game status = `vote_conclusion` |
+| `game_over`         | Game status = `game_over`       |
+| `room_ended`        | Room status = `game_finished`   |
 
 ### Resultado de Transição
 

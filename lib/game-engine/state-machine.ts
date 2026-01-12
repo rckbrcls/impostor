@@ -33,7 +33,8 @@ export const ROOM_TRANSITIONS: Record<RoomPhase, RoomPhase[]> = {
  * game_over → reveal (play again, new game)
  */
 export const GAME_TRANSITIONS: Record<GamePhase, GamePhase[]> = {
-  reveal: ["voting"],
+  reveal: ["waiting_for_start"],
+  waiting_for_start: ["voting"],
   voting: ["vote_result"],
   vote_result: ["vote_conclusion"],
   vote_conclusion: ["voting", "game_over"],
@@ -138,6 +139,8 @@ export function isResultsPhase(phase: GamePhase): boolean {
 export function getNaturalNextPhase(current: GamePhase): GamePhase | null {
   switch (current) {
     case "reveal":
+      return "waiting_for_start";
+    case "waiting_for_start":
       return "voting";
     case "voting":
       return "vote_result";

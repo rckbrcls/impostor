@@ -163,6 +163,63 @@ export async function advanceToVoting(game: Game): Promise<TransitionResult> {
 }
 
 /**
+ * Check if all players have acknowledged role and advance to waiting_for_start
+ * Game: reveal → waiting_for_start
+ */
+export async function checkAndAdvanceToWaiting(
+  game: Game,
+): Promise<TransitionResult> {
+  const error = validateGameTransition(
+    game.status as GamePhase,
+    "waiting_for_start",
+  );
+  if (error) {
+    return {
+      success: false,
+      error: formatTransitionError(error, game.status, "waiting_for_start"),
+    };
+  }
+
+  try {
+    // 1. Get all game players to check acknowledgement
+    const { data: gamePlayers, error: fetchError } = await getGamePlayers(
+      game.id,
+    );
+    if (fetchError || !gamePlayers) {
+      return { success: false, error: "Failed to fetch game players" };
+    }
+
+    const allAcked = gamePlayers.every((gp) => gp.role_acknowledged);
+
+    if (!allAcked) {
+      return {
+        success: false,
+        error: "Not all players have acknowledged their roles",
+      };
+    }
+
+    // 2. Update status
+    const { error: updateError } = await updateGameStatus(
+      game.id,
+      "waiting_for_start",
+    );
+    if (updateError) {
+      return {
+        success: false,
+        error: "Failed to advance to waiting_for_start",
+      };
+    }
+
+    return { success: true, newPhase: "waiting_for_start" };
+  } catch {
+    return {
+      success: false,
+      error: "Unexpected error checking/advancing to waiting",
+    };
+  }
+}
+
+/**
  * Process voting results after all votes are cast
  * Game: voting → vote_result
  */

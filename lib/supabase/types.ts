@@ -23,6 +23,7 @@ export interface Game {
   status:
     | "waiting"
     | "reveal"
+    | "waiting_for_start"
     | "voting"
     | "vote_conclusion"
     | "vote_result"

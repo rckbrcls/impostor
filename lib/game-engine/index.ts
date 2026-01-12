@@ -58,6 +58,8 @@ export {
   formatTransitionError,
 } from "./state-machine";
 
+export { calculateVotingOutcome, type VotingOutcome } from "./voting-logic";
+
 // Transitions (for direct use if needed)
 export {
   startGame,

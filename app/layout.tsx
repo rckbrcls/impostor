@@ -112,7 +112,7 @@ export default function RootLayout({
           <main className="w-full flex-1 overflow-y-auto">
             {children}
           </main>
-          <div className="hidden sm:block">
+          <div className="hidden lg:block">
             <Footer />
           </div>
         </ThemeProvider>
