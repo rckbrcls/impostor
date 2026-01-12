@@ -17,6 +17,8 @@ export async function createGamePlayers(gameId: string, playerIds: string[]) {
     game_id: gameId,
     player_id: playerId,
     is_impostor: false,
+    is_eliminated: false,
+    role_acknowledged: false,
   }));
 
   const { error } = await supabase.from("game_players").insert(gamePlayers);
@@ -30,6 +32,30 @@ export async function setImpostor(gameId: string, playerId: string) {
   const { error } = await supabase
     .from("game_players")
     .update({ is_impostor: true })
+    .eq("game_id", gameId)
+    .eq("player_id", playerId);
+  return { error };
+}
+
+/**
+ * Set a player as eliminated
+ */
+export async function setPlayerEliminated(gameId: string, playerId: string) {
+  const { error } = await supabase
+    .from("game_players")
+    .update({ is_eliminated: true })
+    .eq("game_id", gameId)
+    .eq("player_id", playerId);
+  return { error };
+}
+
+/**
+ * Set a player as having acknowledged their role
+ */
+export async function setPlayerAcknowledged(gameId: string, playerId: string) {
+  const { error } = await supabase
+    .from("game_players")
+    .update({ role_acknowledged: true })
     .eq("game_id", gameId)
     .eq("player_id", playerId);
   return { error };
@@ -90,7 +116,7 @@ export function subscribeToGamePlayers(gameId: string, callback: () => void) {
       },
       () => {
         callback();
-      }
+      },
     )
     .subscribe();
 

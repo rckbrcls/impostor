@@ -24,7 +24,7 @@ interface GameScreenProps {
   currentRound: Round
   gamePlayers: GamePlayerWithPlayer[]
   currentPlayer: Player | null
-  currentGamePlayer: { is_impostor: boolean } | null
+  currentGamePlayer: GamePlayerWithPlayer | null
   isHost: boolean
   onReady: () => void
 }
@@ -59,7 +59,6 @@ export function GameScreen({
     fetchEliminatedPlayers()
   }, [game.id, game.current_round])
 
-
   if (!currentGamePlayer) {
     return (
       <Card className="w-full max-w-md mx-auto">
@@ -75,6 +74,11 @@ export function GameScreen({
       </Card>
     )
   }
+
+  const handleReady = () => {
+    onReady()
+  }
+
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="text-center">
@@ -147,13 +151,13 @@ export function GameScreen({
           </div>
         </div>
 
-        {/* Ready button - Now for ALL players to advance locally to voting */}
+        {/* Ready button */}
         <Button
           className="w-full"
-          onClick={onReady}
+          onClick={handleReady}
         >
           <Vote className="mr-2 size-4" />
-          {t('game.ready_to_vote') || 'Pronto para Votar'}
+          {t('game.ready_to_vote') || 'Ready to Vote'}
         </Button>
       </CardContent>
     </Card>

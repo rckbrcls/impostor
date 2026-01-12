@@ -72,10 +72,14 @@ export async function updateGameRound(gameId: string, currentRound: number) {
 /**
  * End a game
  */
-export async function endGame(gameId: string) {
+export async function endGame(gameId: string, winner: string) {
   const { error } = await supabase
     .from("games")
-    .update({ status: "game_over" as const })
+    .update({
+      status: "game_over" as const,
+      winner,
+      ended_at: new Date().toISOString(),
+    })
     .eq("id", gameId);
   return { error };
 }
@@ -87,7 +91,7 @@ export async function endGame(gameId: string) {
  */
 export function subscribeToGame(
   gameId: string,
-  callback: (game: Game) => void
+  callback: (game: Game) => void,
 ) {
   const channel = supabase
     .channel(`game-${gameId}`)
@@ -101,7 +105,7 @@ export function subscribeToGame(
       },
       (payload) => {
         callback(payload.new as Game);
-      }
+      },
     )
     .subscribe();
 

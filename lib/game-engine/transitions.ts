@@ -18,6 +18,8 @@ import {
   getCurrentRound,
   getGamePlayers,
   getPlayersByRoomId,
+  setPlayerEliminated,
+  endGame as dbEndGame,
 } from "@/lib/supabase";
 import type { Game, Room, Round, Player } from "@/lib/supabase/types";
 import type { GamePlayerWithPlayer } from "@/lib/supabase/game-players";
@@ -161,6 +163,63 @@ export async function advanceToVoting(game: Game): Promise<TransitionResult> {
 }
 
 /**
+ * Check if all players have acknowledged role and advance to waiting_for_start
+ * Game: reveal → waiting_for_start
+ */
+export async function checkAndAdvanceToWaiting(
+  game: Game,
+): Promise<TransitionResult> {
+  const error = validateGameTransition(
+    game.status as GamePhase,
+    "waiting_for_start",
+  );
+  if (error) {
+    return {
+      success: false,
+      error: formatTransitionError(error, game.status, "waiting_for_start"),
+    };
+  }
+
+  try {
+    // 1. Get all game players to check acknowledgement
+    const { data: gamePlayers, error: fetchError } = await getGamePlayers(
+      game.id,
+    );
+    if (fetchError || !gamePlayers) {
+      return { success: false, error: "Failed to fetch game players" };
+    }
+
+    const allAcked = gamePlayers.every((gp) => gp.role_acknowledged);
+
+    if (!allAcked) {
+      return {
+        success: false,
+        error: "Not all players have acknowledged their roles",
+      };
+    }
+
+    // 2. Update status
+    const { error: updateError } = await updateGameStatus(
+      game.id,
+      "waiting_for_start",
+    );
+    if (updateError) {
+      return {
+        success: false,
+        error: "Failed to advance to waiting_for_start",
+      };
+    }
+
+    return { success: true, newPhase: "waiting_for_start" };
+  } catch {
+    return {
+      success: false,
+      error: "Unexpected error checking/advancing to waiting",
+    };
+  }
+}
+
+/**
  * Process voting results after all votes are cast
  * Game: voting → vote_result
  */
@@ -208,7 +267,6 @@ export async function proceedToConclusion(
   }
 
   try {
-    // Update eliminated player if provided
     if (eliminatedPlayerId) {
       const { error: elimError } = await updateRoundEliminated(
         round.id,
@@ -216,6 +274,15 @@ export async function proceedToConclusion(
       );
       if (elimError) {
         return { success: false, error: "Failed to record elimination" };
+      }
+
+      // Mark player as eliminated in game_players
+      const { error: gpError } = await setPlayerEliminated(
+        game.id,
+        eliminatedPlayerId,
+      );
+      if (gpError) {
+        return { success: false, error: "Failed to update player status" };
       }
     }
 
@@ -282,7 +349,10 @@ export async function startNextRound(game: Game): Promise<TransitionResult> {
  * End the current game
  * Game: vote_conclusion → game_over
  */
-export async function endGame(game: Game): Promise<TransitionResult> {
+export async function endGame(
+  game: Game,
+  winner: "impostor" | "players",
+): Promise<TransitionResult> {
   const error = validateGameTransition(game.status as GamePhase, "game_over");
   if (error) {
     return {
@@ -292,7 +362,7 @@ export async function endGame(game: Game): Promise<TransitionResult> {
   }
 
   try {
-    const { error: updateError } = await updateGameStatus(game.id, "game_over");
+    const { error: updateError } = await dbEndGame(game.id, winner);
     if (updateError) {
       return { success: false, error: "Failed to end game" };
     }

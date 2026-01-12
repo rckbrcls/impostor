@@ -1,32 +1,27 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import copy from 'copy-to-clipboard'
 import { useRouter } from 'next/navigation'
 import useSupabaseBrowser from '@/lib/supabase/browser'
 import {
   type Player,
   type Room,
-  createGame,
-  createGamePlayers,
-  setImpostor,
-  createRound,
-  updateRoomStatus
 } from '@/lib/supabase'
 import { getClientId } from '@/lib/game-utils'
 import { getRandomWord } from '@/lib/words'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Copy, Check, Play, Users, LogOut } from 'lucide-react'
+import { Copy, Check, Play, Users, LogOut, Crown, Gamepad2 } from 'lucide-react'
 import { useLanguage } from '@/stores/language-store'
 
 interface LobbyProps {
   room: Room
   players: Player[]
-  onGameStart: () => void
+  onStart: (word: string) => Promise<any>
 }
 
-export function Lobby({ room, players, onGameStart }: LobbyProps) {
+export function Lobby({ room, players, onStart }: LobbyProps) {
   const [copied, setCopied] = useState(false)
   const [isStarting, setIsStarting] = useState(false)
   const [isLeaving, setIsLeaving] = useState(false)
@@ -46,49 +41,13 @@ export function Lobby({ room, players, onGameStart }: LobbyProps) {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const startGame = async () => {
+  const handleStartGame = async () => {
     if (!canStart || !isHost) return
 
     setIsStarting(true)
     try {
-      // 1. Create a new game
-      console.log('Creating game...')
       const word = getRandomWord()
-      const { data: newGame, error: gameError } = await createGame(room.id, word)
-
-      if (gameError || !newGame) {
-        console.error('Error creating game:', gameError)
-        return
-      }
-      console.log('Game created:', newGame)
-
-      // 2. Create game_players for all players
-      const playerIds = players.map(p => p.id)
-      const { error: gpError } = await createGamePlayers(newGame.id, playerIds)
-
-      if (gpError) {
-        console.error('Error creating game players:', gpError)
-        return
-      }
-
-      // 3. Pick random impostor
-      const impostorIndex = Math.floor(Math.random() * players.length)
-      const impostorId = players[impostorIndex].id
-      await setImpostor(newGame.id, impostorId)
-
-      // 4. Create first round
-      await createRound(newGame.id, 1)
-
-      // 5. Update room status to 'playing'
-      console.log('Updating room status to playing...')
-      const { error: updateError } = await updateRoomStatus(room.id, 'playing')
-      if (updateError) {
-        console.error('Error updating room status:', updateError)
-      } else {
-        console.log('Room status updated')
-      }
-
-      onGameStart()
+      await onStart(word)
     } catch (error) {
       console.error('Erro ao iniciar jogo:', error)
     } finally {
@@ -159,9 +118,11 @@ export function Lobby({ room, players, onGameStart }: LobbyProps) {
                 key={player.id}
                 className="flex items-center gap-2 border-2 border-black dark:border-white shadow-[2px_2px_0_0] dark:shadow-white bg-white dark:bg-zinc-900 px-3 py-2"
               >
-                <span className="text-lg">
-                  {player.client_id === room.host_id ? '👑' : '🎮'}
-                </span>
+                {player.client_id === room.host_id ? (
+                  <Crown className="size-5" />
+                ) : (
+                  <Gamepad2 className="size-5" />
+                )}
                 <span className="font-medium">{player.name}</span>
                 {player.client_id === clientId && (
                   <span className="text-xs text-muted-foreground">{t('common.you')}</span>
@@ -181,7 +142,7 @@ export function Lobby({ room, players, onGameStart }: LobbyProps) {
           {isHost && (
             <Button
               className="flex-1"
-              onClick={startGame}
+              onClick={handleStartGame}
               disabled={!canStart || isStarting}
             >
               <Play className="mr-2" />

@@ -8,11 +8,11 @@ import { AboutContent } from "./about-content";
 export const metadata: Metadata = {
   title: "About",
   description:
-    "Learn how to play Duplizen, the ultimate social deduction party game. Discover the rules, gameplay mechanics, and tips to find the impostor!",
+    "Learn how to play Duplizen, the ultimate social deduction game. Discover the rules, gameplay mechanics, and tips to find the impostor!",
   openGraph: {
     title: "About Duplizen - How to Play",
     description:
-      "Learn how to play Duplizen, the ultimate social deduction party game.",
+      "Learn how to play Duplizen, the ultimate social deduction game.",
   },
 };
 

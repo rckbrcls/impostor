@@ -23,7 +23,7 @@ export const translations = {
     "common.copy_link": "Copiar Link",
     "common.loading": "Carregando...",
     "common.error": "Erro",
-    "common.you": "(você)",
+    "common.you": "você",
 
     // Home
     "home.title": "Impostor",
@@ -79,6 +79,13 @@ export const translations = {
     "game.waiting_host_vote": "Aguarde o host iniciar a votação...",
     "game.eliminated": "Eliminado",
     "game.ready_to_vote": "Pronto para Votar",
+    "game.waiting_title": "Aguardando Jogadores",
+    "game.waiting_desc":
+      "A votação começará assim que todos estiverem prontos.",
+    "game.players_ready": "jogadores prontos",
+    "game.waiting_for_players": "Aguardando jogadores...",
+    "game.host_waiting_hint":
+      "Como host, o jogo avançará automaticamente quando todos estiverem prontos.",
 
     // Voting
     "voting.title": "Rodada {0} - Votação",
@@ -107,19 +114,18 @@ export const translations = {
 
     // Vote Conclusion
     "vote_conclusion.title": "Conclusão do Voto",
-    "vote_conclusion.subtitle": "Veja se o seu voto foi correto",
-    "vote_conclusion.you_voted_for": "Você votou em:",
+    "vote_conclusion.subtitle": "Resultado da votação",
+    "vote_conclusion.result_header": "Resultado do Voto:",
     "vote_conclusion.impostor_found": "ERA O IMPOSTOR!",
     "vote_conclusion.not_impostor": "NÃO era o impostor.",
-    "vote_conclusion.skipped_or_action":
-      "Você pulou ou votou para pular/encerrar.",
+    "vote_conclusion.result_skipped": "Ninguém foi eliminado.",
     "vote_conclusion.continue_to_results": "Continuar para Resultados",
     "vote_conclusion.waiting_for_host": "Aguardando o host continuar...",
 
     // Results
     "results.impostor_won": "O Impostor Venceu!",
     "results.players_won": "Jogadores Venceram!",
-    "results.rounds_played": "{0} rodada{1} jogada{1}",
+    "results.rounds_played": "{0} rodada{1} jogada{2}",
     "results.word_was": "A palavra era:",
     "results.impostor_was": "O impostor era:",
     "results.survived_rounds": "Sobreviveu por {0} rodada{1}!",
@@ -162,10 +168,10 @@ export const translations = {
     // About
     "about.title": "Sobre o Jogo",
     "about.subtitle":
-      "Duplizen é um jogo de dedução social multiplayer onde você precisa descobrir quem é o impostor entre seus amigos!",
+      "Duplizen é um jogo de dedução social em tempo real. Cada um joga do seu próprio celular sem precisar baixar nada!",
     "about.what_is_title": "O que é Duplizen?",
     "about.what_is_desc":
-      "Duplizen é um jogo de festa para grupos de amigos. Uma pessoa é escolhida aleatoriamente como o impostor e não sabe qual é a palavra secreta. Os outros jogadores precisam descobrir quem é o impostor fazendo perguntas e observando as respostas, enquanto o impostor tenta se passar despercebido.",
+      "Duplizen é um jogo online para grupos. Diferente de outros jogos onde se passa o celular, aqui cada um usa seu próprio dispositivo para ver a palavra secreta e votar em tempo real. Uma pessoa é o impostor e deve se misturar sem saber a palavra!",
     "about.how_to_play": "Como Jogar",
     "about.step1_title": "Crie uma Sala",
     "about.step1_desc":
@@ -180,12 +186,12 @@ export const translations = {
     "about.step4_desc":
       "Vote em quem você acha que é o impostor. Se acertarem, os cidadãos vencem!",
     "about.features_title": "Características",
-    "about.feature1_title": "Dedução Social",
+    "about.feature1_title": "100% Online",
     "about.feature1_desc":
-      "Use suas habilidades de observação para identificar o impostor.",
-    "about.feature2_title": "Blefe",
+      "Sem app para baixar. Acesse o site e jogue na hora.",
+    "about.feature2_title": "Dispositivos Individuais",
     "about.feature2_desc":
-      "Como impostor, engane os outros para sobreviver às votações.",
+      "Cada um joga do seu celular. Nada de ficar passando telefone!",
     "about.feature3_title": "Ranking",
     "about.feature3_desc":
       "Ganhe pontos por votos corretos e conquiste títulos especiais.",
@@ -208,7 +214,7 @@ export const translations = {
     "common.copy_link": "Copy Link",
     "common.loading": "Loading...",
     "common.error": "Error",
-    "common.you": "(you)",
+    "common.you": "you",
 
     // Home
     "home.title": "Impostor",
@@ -264,6 +270,12 @@ export const translations = {
     "game.waiting_host_vote": "Wait for host to start voting...",
     "game.eliminated": "Eliminated",
     "game.ready_to_vote": "Ready to Vote",
+    "game.waiting_title": "Waiting for Players",
+    "game.waiting_desc": "The voting will start once everyone is ready.",
+    "game.players_ready": "players ready",
+    "game.waiting_for_players": "Waiting for players...",
+    "game.host_waiting_hint":
+      "As host, the game will advance automatically when everyone is ready.",
 
     // Voting
     "voting.title": "Round {0} - Voting",
@@ -292,11 +304,11 @@ export const translations = {
 
     // Vote Conclusion
     "vote_conclusion.title": "Vote Conclusion",
-    "vote_conclusion.subtitle": "See if your vote was correct",
-    "vote_conclusion.you_voted_for": "You voted for:",
+    "vote_conclusion.subtitle": "Result of the vote",
+    "vote_conclusion.result_header": "Vote Result:",
     "vote_conclusion.impostor_found": "WAS THE IMPOSTOR!",
     "vote_conclusion.not_impostor": "Was NOT the impostor.",
-    "vote_conclusion.skipped_or_action": "You skipped or voted for action.",
+    "vote_conclusion.result_skipped": "No one was eliminated.",
     "vote_conclusion.continue_to_results": "Continue to Results",
     "vote_conclusion.waiting_for_host": "Waiting for host to continue...",
 
@@ -346,10 +358,10 @@ export const translations = {
     // About
     "about.title": "About the Game",
     "about.subtitle":
-      "Duplizen is a multiplayer social deduction game where you need to find the impostor among your friends!",
+      "Duplizen is a realtime social deduction game. Everyone plays from their own phone without downloading anything!",
     "about.what_is_title": "What is Duplizen?",
     "about.what_is_desc":
-      "Duplizen is a party game for groups of friends. One person is randomly chosen as the impostor and doesn't know the secret word. Other players must figure out who the impostor is by asking questions and observing answers, while the impostor tries to blend in.",
+      "Duplizen is an online party game. Unlike games where you pass a phone around, here everyone uses their own device to see the secret word and vote in real-time. One person is the impostor and must blend in without knowing the word!",
     "about.how_to_play": "How to Play",
     "about.step1_title": "Create a Room",
     "about.step1_desc":
@@ -364,11 +376,12 @@ export const translations = {
     "about.step4_desc":
       "Vote for who you think is the impostor. If correct, the citizens win!",
     "about.features_title": "Features",
-    "about.feature1_title": "Social Deduction",
+    "about.feature1_title": "100% Online",
     "about.feature1_desc":
-      "Use your observation skills to identify the impostor.",
-    "about.feature2_title": "Bluffing",
-    "about.feature2_desc": "As impostor, deceive others to survive the votes.",
+      "No app download. Just visit the site and play instantly.",
+    "about.feature2_title": "Individual Devices",
+    "about.feature2_desc":
+      "Everyone plays on their own phone. No more passing devices around!",
     "about.feature3_title": "Ranking",
     "about.feature3_desc":
       "Earn points for correct votes and unlock special titles.",

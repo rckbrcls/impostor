@@ -14,13 +14,13 @@ The application implements a comprehensive SEO strategy with bilingual support (
 
 The root layout exports a `metadata` object with:
 
-| Property        | Value                                      |
-| --------------- | ------------------------------------------ |
-| **Title**       | "Duplizen - Social Deduction Party Game"   |
-| **Template**    | "%s \| Duplizen" (for child pages)         |
-| **Description** | Optimized description in English (default) |
-| **Keywords**    | Bilingual keywords (EN + PT)               |
-| **Author**      | Polterware                                 |
+| Property        | Value                                                                                                                                                       |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Title**       | "Duplizen - Social Deduction Game"                                                                                                                          |
+| **Template**    | "%s \| Duplizen" (for child pages)                                                                                                                          |
+| **Description** | "Play the ultimate social deduction game! Find the impostor among your friends in real-time. Everyone plays from their own phone - no app download needed!" |
+| **Keywords**    | "online", "realtime", "no download", "play on mobile", "multi-device" + standard keywords                                                                   |
+| **Author**      | Polterware                                                                                                                                                  |
 
 ---
 
@@ -34,14 +34,14 @@ openGraph: {
   locale: "en_US",
   alternateLocale: "pt_BR",
   siteName: "Duplizen",
-  images: [{ url: "/og-image.png", width: 1200, height: 630 }]
+  images: [{ url: "/assets/impostor.png", width: 1200, height: 630 }]
 }
 ```
 
-### Image: `public/og-image.png`
+### Image: `/assets/impostor.png`
 
 - Dimensions: 1200x630px
-- Content: Game logo, title, and tagline
+- Content: The main game mascot image used on the home page
 
 ---
 
@@ -50,8 +50,8 @@ openGraph: {
 ```typescript
 twitter: {
   card: "summary_large_image",
-  title: "Duplizen - Social Deduction Party Game",
-  images: ["/og-image.png"]
+  title: "Duplizen - Social Deduction Game",
+  images: ["/assets/impostor.png"]
 }
 ```
 
@@ -102,7 +102,7 @@ Injects WebApplication schema in the `<head>`:
   "name": "Duplizen",
   "applicationCategory": "GameApplication",
   "operatingSystem": "Web Browser",
-  "genre": ["Party Game", "Social Deduction", "Multiplayer"],
+  "genre": ["Social Deduction", "Multiplayer", "Party Game"],
   "inLanguage": ["en", "pt-BR"]
 }
 ```

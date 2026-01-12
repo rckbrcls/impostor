@@ -9,8 +9,15 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import useSupabaseBrowser from "@/lib/supabase/browser";
-import { getRoomByCode } from "@/queries";
+import {
+  getRoomByCode,
+  getActiveGame,
+  getPlayersByRoom,
+  getCurrentRound,
+  getGamePlayers,
+} from "@/queries";
 import { getClientId } from "@/lib/game-utils";
+import { setPlayerAcknowledged } from "@/lib/supabase";
 import type { Room, Player, Game, Round } from "@/lib/supabase/types";
 import type { GamePlayerWithPlayer } from "@/lib/supabase/game-players";
 import type { UseGameLoopReturn, ViewPhase, TransitionResult } from "./types";
@@ -23,7 +30,7 @@ import {
   startNextRound as transitionStartNextRound,
   endGame as transitionEndGame,
   playAgain as transitionPlayAgain,
-  fetchGameLoopData,
+  checkAndAdvanceToWaiting,
 } from "./transitions";
 
 // ============ Helper Functions ============
@@ -36,6 +43,7 @@ function calculateViewPhase(
   game: Game | null,
   currentPlayer: Player | null,
   hasAckedRole: boolean,
+  dbAckedRole: boolean,
 ): ViewPhase {
   if (!room) return "joining";
   if (!currentPlayer) return "joining";
@@ -48,8 +56,9 @@ function calculateViewPhase(
   // Map game status to view phase
   switch (game.status) {
     case "reveal":
-      // If player has acknowledged, show voting
-      return hasAckedRole ? "voting" : "reveal";
+      return "reveal";
+    case "waiting_for_start":
+      return "waiting_for_start";
     case "voting":
       return "voting";
     case "vote_result":
@@ -99,6 +108,35 @@ export function useGameLoop(roomCode: string): UseGameLoopReturn {
   const roomRef = useRef<Room | null>(null);
   const playerRef = useRef<Player | null>(null);
 
+  // ============ Computed Values ============
+
+  const currentPlayer = useMemo(
+    () => players.find((p) => p.client_id === clientId) ?? null,
+    [players, clientId],
+  );
+
+  const currentGamePlayer = useMemo(
+    () => gamePlayers.find((gp) => gp.player_id === currentPlayer?.id) ?? null,
+    [gamePlayers, currentPlayer?.id],
+  );
+
+  const isHost = room?.host_id === clientId;
+  const isImpostor = currentGamePlayer?.is_impostor ?? false;
+
+  const viewPhase = calculateViewPhase(
+    room,
+    game,
+    currentPlayer,
+    hasAckedRole,
+    currentGamePlayer?.role_acknowledged ?? false,
+  );
+
+  // Update refs
+  useEffect(() => {
+    roomRef.current = room;
+    playerRef.current = currentPlayer;
+  }, [room, currentPlayer]);
+
   // ============ Data Fetching ============
 
   const fetchRoom = useCallback(async () => {
@@ -116,15 +154,44 @@ export function useGameLoop(roomCode: string): UseGameLoopReturn {
     }
   }, [supabase, roomCode]);
 
-  const fetchGameData = useCallback(async () => {
-    if (!room?.id) return;
+  const fetchGameData = useCallback(
+    async (overrideRoomId?: string) => {
+      const targetRoomId = overrideRoomId || room?.id;
+      if (!targetRoomId) return;
 
-    const data = await fetchGameLoopData(room.id);
-    setGame(data.game);
-    setCurrentRound(data.currentRound);
-    setPlayers(data.players);
-    setGamePlayers(data.gamePlayers);
-  }, [room?.id]);
+      try {
+        // 1. Fetch active game
+        const { data: gameData } = await getActiveGame(supabase, targetRoomId);
+        setGame(gameData as Game);
+
+        // 2. Fetch players
+        const { data: playersData } = await getPlayersByRoom(
+          supabase,
+          targetRoomId,
+        );
+        setPlayers((playersData as Player[]) || []);
+
+        // 3. Fetch specific game details if game exists
+        if (gameData) {
+          const { data: roundData } = await getCurrentRound(
+            supabase,
+            gameData.id,
+            gameData.current_round ?? 1,
+          );
+          setCurrentRound(roundData as Round);
+
+          const { data: gpData } = await getGamePlayers(supabase, gameData.id);
+          setGamePlayers(gpData);
+        } else {
+          setCurrentRound(null);
+          setGamePlayers([]);
+        }
+      } catch (error) {
+        console.error("[useGameLoop] Error fetching game data:", error);
+      }
+    },
+    [supabase, room?.id],
+  );
 
   const refresh = useCallback(async () => {
     await fetchRoom();
@@ -136,18 +203,23 @@ export function useGameLoop(roomCode: string): UseGameLoopReturn {
   useEffect(() => {
     async function initialize() {
       setIsLoading(true);
-      await fetchRoom();
+      const roomData = await fetchRoom();
+      if (roomData) {
+        // Pass roomData.id directly to avoid waiting for state update
+        await fetchGameData(roomData.id);
+      }
       setIsInitialized(true);
       setIsLoading(false);
     }
     initialize();
-  }, [fetchRoom]);
+  }, []); // Run once on mount
 
+  // Watch for room changes AFTER initialization (e.g. navigation or updates)
   useEffect(() => {
-    if (room?.id) {
+    if (isInitialized && room?.id) {
       fetchGameData();
     }
-  }, [room?.id, fetchGameData]);
+  }, [room?.id, fetchGameData, isInitialized]);
 
   // ============ Role Acknowledgement ============
 
@@ -155,15 +227,31 @@ export function useGameLoop(roomCode: string): UseGameLoopReturn {
     if (!game?.id || !currentRound?.id) return;
     const key = getAckKey(game.id, currentRound.id);
     const savedAck = localStorage.getItem(key) === "true";
-    setHasAckedRole(savedAck);
-  }, [game?.id, currentRound?.id]);
+    const dbAck = currentGamePlayer?.role_acknowledged ?? false;
+
+    if (savedAck || dbAck) {
+      setHasAckedRole(true);
+    }
+  }, [game?.id, currentRound?.id, currentGamePlayer?.role_acknowledged]);
 
   const acknowledgeRole = useCallback(() => {
-    if (!game?.id || !currentRound?.id) return;
+    if (!game?.id || !currentRound?.id || !currentPlayer?.id) return;
     const key = getAckKey(game.id, currentRound.id);
     localStorage.setItem(key, "true");
     setHasAckedRole(true);
-  }, [game?.id, currentRound?.id]);
+
+    // Sync with DB and check if everyone is ready
+    setPlayerAcknowledged(game.id, currentPlayer.id)
+      .then(async () => {
+        // We pass the game object, but we need to make sure we're using the latest state
+        // However, for the id and status check (inside transition), the current game object is fine
+        // provided the status hasn't changed from reveal (which it shouldn't have yet)
+        if (game.status === "reveal") {
+          await checkAndAdvanceToWaiting(game);
+        }
+      })
+      .catch(console.error);
+  }, [game, currentRound?.id, currentPlayer?.id]);
 
   // ============ Realtime Subscriptions ============
 
@@ -232,28 +320,28 @@ export function useGameLoop(roomCode: string): UseGameLoopReturn {
     };
   }, [supabase, game?.id, fetchGameData]);
 
-  // ============ Computed Values ============
-
-  const currentPlayer = useMemo(
-    () => players.find((p) => p.client_id === clientId) ?? null,
-    [players, clientId],
-  );
-
-  const currentGamePlayer = useMemo(
-    () => gamePlayers.find((gp) => gp.player_id === currentPlayer?.id) ?? null,
-    [gamePlayers, currentPlayer?.id],
-  );
-
-  const isHost = room?.host_id === clientId;
-  const isImpostor = currentGamePlayer?.is_impostor ?? false;
-
-  const viewPhase = calculateViewPhase(room, game, currentPlayer, hasAckedRole);
-
-  // Update refs
+  // Game Players subscription (for readiness/elimination updates)
   useEffect(() => {
-    roomRef.current = room;
-    playerRef.current = currentPlayer;
-  }, [room, currentPlayer]);
+    if (!game?.id) return;
+
+    const channel = supabase
+      .channel(`gameloop-game-players-${game.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "game_players",
+          filter: `game_id=eq.${game.id}`,
+        },
+        () => fetchGameData(),
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase, game?.id, fetchGameData]);
 
   // ============ Actions ============
 
@@ -309,10 +397,13 @@ export function useGameLoop(roomCode: string): UseGameLoopReturn {
     return withTransition(() => transitionStartNextRound(game));
   }, [game, withTransition]);
 
-  const endGameAction = useCallback(async (): Promise<TransitionResult> => {
-    if (!game) return { success: false, error: "No game available" };
-    return withTransition(() => transitionEndGame(game));
-  }, [game, withTransition]);
+  const endGameAction = useCallback(
+    async (winner: "impostor" | "players"): Promise<TransitionResult> => {
+      if (!game) return { success: false, error: "No game available" };
+      return withTransition(() => transitionEndGame(game, winner));
+    },
+    [game, withTransition],
+  );
 
   const playAgain = useCallback(
     async (newWord: string): Promise<TransitionResult> => {

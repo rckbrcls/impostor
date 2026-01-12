@@ -18,20 +18,26 @@ export type Database = {
         Row: {
           game_id: string
           id: string
+          is_eliminated: boolean | null
           is_impostor: boolean | null
           player_id: string
+          role_acknowledged: boolean | null
         }
         Insert: {
           game_id: string
           id?: string
+          is_eliminated?: boolean | null
           is_impostor?: boolean | null
           player_id: string
+          role_acknowledged?: boolean | null
         }
         Update: {
           game_id?: string
           id?: string
+          is_eliminated?: boolean | null
           is_impostor?: boolean | null
           player_id?: string
+          role_acknowledged?: boolean | null
         }
         Relationships: [
           {
@@ -54,25 +60,31 @@ export type Database = {
         Row: {
           created_at: string | null
           current_round: number | null
+          ended_at: string | null
           id: string
           room_id: string
           status: string | null
+          winner: string | null
           word: string | null
         }
         Insert: {
           created_at?: string | null
           current_round?: number | null
+          ended_at?: string | null
           id?: string
           room_id: string
           status?: string | null
+          winner?: string | null
           word?: string | null
         }
         Update: {
           created_at?: string | null
           current_round?: number | null
+          ended_at?: string | null
           id?: string
           room_id?: string
           status?: string | null
+          winner?: string | null
           word?: string | null
         }
         Relationships: [
@@ -148,6 +160,7 @@ export type Database = {
         Row: {
           created_at: string | null
           eliminated_player_id: string | null
+          ended_at: string | null
           game_id: string
           id: string
           majority_action: string | null
@@ -156,6 +169,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           eliminated_player_id?: string | null
+          ended_at?: string | null
           game_id: string
           id?: string
           majority_action?: string | null
@@ -164,6 +178,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           eliminated_player_id?: string | null
+          ended_at?: string | null
           game_id?: string
           id?: string
           majority_action?: string | null

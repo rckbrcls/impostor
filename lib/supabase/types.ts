@@ -23,13 +23,16 @@ export interface Game {
   status:
     | "waiting"
     | "reveal"
+    | "waiting_for_start"
     | "voting"
     | "vote_conclusion"
     | "vote_result"
     | "game_over";
   word: string;
   current_round: number;
+  winner: string | null;
   created_at: string;
+  ended_at: string | null;
 }
 
 export interface GamePlayer {
@@ -37,6 +40,8 @@ export interface GamePlayer {
   game_id: string;
   player_id: string;
   is_impostor: boolean;
+  is_eliminated: boolean;
+  role_acknowledged: boolean;
 }
 
 export interface Round {
@@ -46,6 +51,7 @@ export interface Round {
   eliminated_player_id: string | null;
   majority_action: "next_round" | "end_game" | null;
   created_at: string;
+  ended_at: string | null;
 }
 
 export interface Vote {

@@ -1,0 +1,1 @@
+vou explicar a logica para ser reveal ou waiting for start, por que quando estou comecando o jogo, esta mudando para wainting for start depois mudando para reveal

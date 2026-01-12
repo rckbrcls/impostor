@@ -32,13 +32,22 @@ export const metadata: Metadata = {
     template: "%s | Duplizen",
   },
   description:
-    "Play the ultimate social deduction game! Find the impostor among your friends in this exciting multiplayer party game. Free to play online.",
+    "Play the ultimate social deduction game! Find the impostor among your friends in real-time. Everyone plays from their own phone - no app download needed!",
   keywords: [
     "duplizen",
     "impostor game",
     "social deduction",
-    "party game",
     "multiplayer game",
+    "party game",
+    "online",
+    "realtime",
+    "ao vivo",
+    "browser game",
+    "no download",
+    "sem baixar app",
+    "multi-device",
+    "play on phone",
+    "jogue no celular",
     "find the impostor",
     "jogo do impostor",
     "jogo de dedução social",
@@ -52,24 +61,24 @@ export const metadata: Metadata = {
     alternateLocale: "pt_BR",
     url: "https://duplizen.vercel.app",
     siteName: "Duplizen",
-    title: "Duplizen - Social Deduction Party Game",
+    title: "Duplizen - Social Deduction Game",
     description:
-      "Find the impostor among your friends! The ultimate multiplayer social deduction party game.",
+      "Find the impostor among your friends! The ultimate multiplayer social deduction game.",
     images: [
       {
-        url: "/og-image.png",
+        url: "/assets/impostor.png",
         width: 1200,
         height: 630,
-        alt: "Duplizen - Social Deduction Party Game",
+        alt: "Duplizen - Social Deduction Game",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Duplizen - Social Deduction Party Game",
+    title: "Duplizen - Social Deduction Game",
     description:
-      "Find the impostor among your friends! The ultimate multiplayer social deduction party game.",
-    images: ["/og-image.png"],
+      "Find the impostor among your friends! The ultimate multiplayer social deduction game.",
+    images: ["/assets/impostor.png"],
   },
   robots: {
     index: true,
@@ -103,7 +112,7 @@ export default function RootLayout({
           <main className="w-full flex-1 overflow-y-auto">
             {children}
           </main>
-          <div className="hidden sm:block">
+          <div className="hidden lg:block">
             <Footer />
           </div>
         </ThemeProvider>

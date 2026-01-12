@@ -26,6 +26,7 @@ export type RoomPhase = "waiting" | "playing" | "game_finished";
 export type GamePhase =
   | "reveal"
   | "voting"
+  | "waiting_for_start"
   | "vote_result"
   | "vote_conclusion"
   | "game_over";
@@ -38,6 +39,7 @@ export type ViewPhase =
   | "lobby" // Waiting for game to start
   | "reveal" // Showing role/word
   | "voting" // Casting votes
+  | "waiting_for_start" // Waiting for others to acknowledge role
   | "vote_result" // Showing vote results
   | "vote_conclusion" // Individual vote feedback
   | "game_over" // Game ended, showing winner
@@ -103,7 +105,7 @@ export interface GameLoopActions {
     eliminatedPlayerId?: string,
   ) => Promise<TransitionResult>;
   startNextRound: () => Promise<TransitionResult>;
-  endGame: () => Promise<TransitionResult>;
+  endGame: (winner: "impostor" | "players") => Promise<TransitionResult>;
   playAgain: (newWord: string) => Promise<TransitionResult>;
   endSession: () => Promise<TransitionResult>;
 
